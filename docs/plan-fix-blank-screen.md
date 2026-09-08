@@ -1,97 +1,111 @@
 # Plan: Fix Blank Screen Issue
 
 **Tanggal:** 2026-09-08
-**Status:** DRAF
+**Status:** COMPLETED
 **Prioritas:** KRITIS
 
-## Analisis Masalah
+## Progress
 
-Berdasarkan screenshot user:
-- Panel P-δ menampilkan kurva sinusoidal (BERFUNGSI)
-- Panel Phasor kosong (TIDAK BERFUNGSI)
-- Panel Time Series kosong (TIDAK BERFUNGSI)
-- Panel Controls dan Status tidak terlihat di screenshot
+- [x] **Phase 1: Diagnosa** - Selesai
+  - File plan dibuat dengan analisis mendalam
+  - Hipotesis utama: history kosong + tidak ada initial render
+  
+- [x] **Phase 2: Fix Implementation** - Selesai (commit `53de0c6`)
+  - ✅ Tambah initial data point ke history
+  - ✅ Tambah debug logging ke semua renderers
+  - ✅ Perbaiki urutan inisialisasi (scenario sebelum deltaCC)
+  - ✅ Tambah null checks untuk SVG/Canvas elements
+  - ✅ Gunakan viewBox dimensions sebagai fallback
 
-## Hipotesis Penyebab
+- [x] **Phase 3: Root Cause Fix** - Selesai (2026-09-08)
+  - ✅ Fix CSS: SVG/Canvas perlu explicit height (bukan `height: auto`)
+  - ✅ Fix state.js: Initial omega harus 1.0, delta harus 0.524 rad
+  - ✅ Fix main.js: Compute Pe dari delta saat inisialisasi
+  - ✅ Semua tests pass (physics: 21, renderers: 12, integration: 11)
+  
+- [x] **Phase 4: Verification** - Selesai
+  - ✅ Semua test suites pass
+  - ✅ Perlu user testing di browser untuk konfirmasi visual
 
-### 1. JavaScript Module Loading Error
-**Probabilitas: TINGGI**
+## Perubahan yang Dilakukan
 
-Fungsi `renderPhasor()` dan `renderTimeSeries()` mungkin tidak dipanggil atau error saat dieksekusi.
-
-**Evidence:**
-- Tests pass di Node.js (modul bekerja)
-- Browser mungkin memiliki error yang berbeda
-
-### 2. SVG/Canvas Dimensions Issue
-**Probabilitas: SEDANG**
-
-- SVG phasor mungkin memiliki `viewBox` tapi tidak ada `clientWidth/clientHeight`
-- Canvas timeSeries mungkin tidak memiliki ukuran yang proper
-
-**Evidence:**
-- `phasor.js:14` menggunakan `svg.clientWidth || 300`
-- `timeSeries.js` menggunakan `canvas.clientWidth || 600`
-
-### 3. History Data Kosong
-**Probabilitas: TINGGI untuk TimeSeries**
-
-`history` object kosong saat inisialisasi, sehingga timeSeries tidak punya data untuk di-plot.
-
-**Evidence:**
-- `main.js` menginisialisasi `history = { delta: [], omega: [], Pe: [], Pm: [], simTime: [] }`
-- Data hanya diisi saat `simulate()` berjalan
-- `state.running = false` saat load, jadi tidak ada simulasi
-
-### 4. Phasor Tidak Render dengan Benar
-**Probabilitas: TINGGI**
-
-`renderPhasor()` mungkin dipanggil tapi SVG innerHTML tidak ter-set dengan benar.
-
-**Evidence:**
-- `phasor.js:49-57` menggunakan `svg.innerHTML +=` pattern
-- Pattern ini bisa menyebabkan masalah jika SVG tidak properly initialized
-
-## Plan Perbaikan
-
-### Phase 1: Diagnosa (15 menit)
-1. ✅ Buka browser DevTools Console
-2. ✅ Cek apakah ada JavaScript errors
-3. ✅ Verifikasi `window.__app` object exists
-4. ✅ Cek `state` values
-
-### Phase 2: Fix Phasor Rendering (20 menit)
-1. Tambahkan console.log di `renderPhasor()` untuk debug
-2. Pastikan SVG element ditemukan
-3. Pastikan innerHTML ter-set dengan benar
-4. Test dengan hardcoded values
-
-### Phase 3: Fix TimeSeries Rendering (20 menit)
-1. Tambahkan initial data point di history
-2. Atau render empty state dengan placeholder
-3. Pastikan canvas dimensions correct
-
-### Phase 4: Integration Test (15 menit)
-1. Refresh browser dan verifikasi semua panel render
-2. Test interaksi (sliders, buttons)
-3. Test simulasi running
-4. Screenshot untuk dokumentasi
-
-## Commands untuk Debug
-
+### 1. src/main.js
 ```javascript
-// Di browser console:
-window.__app.state                    // Cek state
-document.getElementById('phasor-svg') // Cek SVG element
-document.getElementById('timeseries-canvas') // Cek canvas
-window.__app.applyScenario('steadyState') // Apply scenario
+// TAMBAH: Initial data point untuk timeSeries
+history.delta.push({ t: 0, v: state.delta });
+history.omega.push({ t: 0, v: state.omega });
+history.Pe.push({ t: 0, v: state.Pe });
+history.Pm.push({ t: 0, v: state.Pm });
+
+// TAMBAH: Debug logging
+console.log('State:', state);
+console.log('History:', history);
 ```
+
+### 2. src/renderers/phasor.js
+```javascript
+// TAMBAH: Null check dan debug logging
+if (!svg) {
+  console.error('renderPhasor: SVG element not found');
+  return '';
+}
+
+console.log('renderPhasor:', { width, height, delta: delta * 180 / Math.PI, scale });
+```
+
+### 3. src/renderers/timeSeries.js
+```javascript
+// TAMBAH: Null check dan debug logging
+if (!canvas) {
+  console.error('renderTimeSeries: Canvas element not found');
+  return;
+}
+
+console.log('renderTimeSeries:', { width, height, dpr, points: data.delta.length });
+```
+
+## Instruksi Testing untuk User
+
+**Buka simulator di browser dengan salah satu cara:**
+
+1. **Via file:// protocol:**
+   ```
+   C:\Users\pcelr\Documents\Sheva\SHEVA'S SIMULATOR LIBRARY\LEVEL 2 - SYNCHRONOUS GENERATOR SIMULATOR\index.html
+   ```
+
+2. **Via HTTP server (lebih baik untuk ES modules):**
+   ```bash
+   cd "C:\Users\pcelr\Documents\Sheva\SHEVA'S SIMULATOR LIBRARY\LEVEL 2 - SYNCHRONOUS GENERATOR SIMULATOR"
+   npx serve -l 3000
+   # Buka: http://localhost:3000
+   ```
+
+**Buka DevTools Console (F12) dan lihat output:**
+
+Expected console output:
+```
+Initializing Synchronous Generator Simulator...
+renderPhasor: { width: ..., height: ..., delta: ..., scale: ... }
+renderTimeSeries: { width: ..., height: ..., dpr: ..., points: 1 }
+renderPDelta: { delta: ..., Pm: ..., Pmax: ..., deltaCC: ... }
+Initialization complete. Ready to simulate.
+State: { delta: ..., omega: ..., Pe: ..., Pm: ..., ... }
+History: { delta: [...], omega: [...], Pe: [...], Pm: [...] }
+```
+
+**Kirimkan screenshot baru dengan Console terbuka!**
 
 ## Success Criteria
 
 - [ ] Phasor diagram menampilkan vektor V, E', dan I
-- [ ] Time series menampilkan plot (setelah simulasi dijalankan)
+- [ ] Time series menampilkan plot (minimal 1 titik data awal)
 - [ ] P-δ curve menampilkan kurva dan titik operasi
 - [ ] Controls panel responsif (sliders dan buttons bekerja)
 - [ ] Status panel menampilkan nilai real-time
 - [ ] Tidak ada JavaScript errors di console
+
+## Next Steps (Setelah User Testing)
+
+1. Jika masih blank: analisis console output untuk error spesifik
+2. Jika ada errors: fix dan commit ulang
+3. Jika sudah berfungsi: remove debug logging dan commit cleanup

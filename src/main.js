@@ -34,6 +34,9 @@ function initializeApp() {
   // Apply startup scenario FIRST (before any rendering)
   applyScenario(state, 'steadyState');
 
+  // Compute initial Pe from delta
+  state.Pe = computePe(state.delta, CONSTANTS.Pmax);
+
   // Compute initial δCC for current Pm
   const result = computeCriticalClearingAngle(
     state.delta,

@@ -10,10 +10,10 @@
 export function makeState() {
   return {
     // --- physics ---
-    delta: 0.5,        // rotor angle (rad)
-    omega: 0.0,        // angular velocity deviation (0.0 = synchronous speed)
-    Pe: 0.0,           // electrical power (pu)
-    Pm: 0.0,           // mechanical power (pu)
+    delta: 0.524,      // rotor angle (rad) ~30° default
+    omega: 1.0,        // angular velocity (1.0 = synchronous speed in absolute convention)
+    Pe: 0.0,           // electrical power (pu) - computed from delta
+    Pm: 1.0,           // mechanical power (pu) - initial value
 
     // --- governor ---
     Pref: 1.0,         // speed/load demand set-point
