@@ -40,6 +40,8 @@ const stubElements = {
     width, height,
     getContext() { return ctx; },
     setTransform() {},
+    addEventListener() {}, // Stub for cursor tracking
+    removeEventListener() {}, // Stub for cursor tracking
   }),
 };
 

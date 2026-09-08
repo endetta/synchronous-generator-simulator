@@ -3,8 +3,112 @@
 // Supports single signal view with signal selector.
 // Supports DPR (device pixel ratio) scaling for retina displays.
 // Features sliding window for smooth visualization over time.
+// Includes cursor sync & crosshair readout.
 
 const WINDOW_SIZE = 10; // Show last 10 seconds of data
+
+// Cursor sync state
+const cursorState = {
+  active: false,
+  x: 0,
+  y: 0,
+  time: 0,
+  value: 0,
+};
+
+// Track if cursor tracking has been setup
+let cursorTrackingSetup = false;
+
+// Setup cursor tracking on canvas
+function setupCursorTracking(canvas, data, timeRange, valueRange) {
+  const [tMin, tMax] = timeRange;
+  const [vMin, vMax] = valueRange;
+  const padding = { left: 70, right: 20, top: 40, bottom: 50 };
+
+  canvas.addEventListener('mouseenter', () => {
+    cursorState.active = true;
+    notifyCursorChange();
+  });
+
+  canvas.addEventListener('mousemove', (e) => {
+    if (!cursorState.active) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    cursorState.x = x;
+    cursorState.y = y;
+
+    // Calculate time from x position
+    const plotW = rect.width - padding.left - padding.right;
+    const normalizedX = Math.max(0, Math.min(1, (x - padding.left) / plotW));
+    cursorState.time = tMin + normalizedX * (tMax - tMin);
+
+    // Find exact value from data
+    if (data && data.length > 0) {
+      let closest = data[0];
+      let minDist = Math.abs(data[0].t - cursorState.time);
+
+      for (let i = 1; i < data.length; i++) {
+        const dist = Math.abs(data[i].t - cursorState.time);
+        if (dist < minDist) {
+          minDist = dist;
+          closest = data[i];
+        }
+      }
+
+      cursorState.value = closest.v;
+    }
+
+    notifyCursorChange();
+  });
+
+  canvas.addEventListener('mouseleave', () => {
+    cursorState.active = false;
+    notifyCursorChange();
+  });
+}
+
+// Notify cursor state change (trigger tooltip update)
+function notifyCursorChange() {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('cursor-sync', {
+      detail: { ...cursorState }
+    }));
+  }
+}
+
+// Draw crosshair on canvas
+function drawCrosshair(ctx, canvas) {
+  const padding = { left: 70, right: 20, top: 40, bottom: 50 };
+
+  ctx.save();
+  ctx.strokeStyle = '#D73A49';
+  ctx.lineWidth = 1;
+
+  if (ctx.setLineDash) {
+    ctx.setLineDash([4, 4]);
+  }
+
+  // Vertical line
+  ctx.beginPath();
+  ctx.moveTo(cursorState.x, padding.top);
+  ctx.lineTo(cursorState.x, canvas.clientHeight - padding.bottom);
+  ctx.stroke();
+
+  // Horizontal line
+  ctx.beginPath();
+  ctx.moveTo(padding.left, cursorState.y);
+  ctx.lineTo(canvas.clientWidth - padding.right, cursorState.y);
+  ctx.stroke();
+
+  if (ctx.setLineDash) {
+    ctx.setLineDash([]);
+  }
+
+  ctx.restore();
+}
 
 // Signal configuration
 const SIGNALS = {
@@ -256,5 +360,16 @@ export function renderTimeSeries(canvas, data) {
     const valueText = lastPoint.v.toFixed(4) + ' ' + signalConfig.unit;
     const labelX = Math.min(x + 12, padding.left + plotWidth - 60);
     ctx.fillText(valueText, labelX, y);
+  }
+
+  // Setup cursor tracking if not already done
+  if (!cursorTrackingSetup && typeof window !== 'undefined') {
+    setupCursorTracking(canvas, signalData, [windowMin, windowMax], [vMin, vMax]);
+    cursorTrackingSetup = true;
+  }
+
+  // Draw crosshair if cursor is active
+  if (cursorState.active) {
+    drawCrosshair(ctx, canvas);
   }
 }

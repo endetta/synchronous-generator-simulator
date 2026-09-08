@@ -87,35 +87,58 @@ Phase 3 **SELESAI** - Semua fitur time series sudah diimplementasikan di Phase 2
 ## Phase 4: Measurement Tools
 
 ### Tasks
-- [ ] **P4.1** - Cursor sync
-  - Hover di 1 chart → vertical line di semua charts
-  - Sync time reference
+- [x] **P4.1** - Cursor sync
+  - Hover di 1 chart → vertical line di semua charts ✅
+  - Sync time reference ✅
 
-- [ ] **P4.2** - Crosshair readout
-  - Show (t, value) saat hover
-  - Floating tooltip atau inline display
+- [x] **P4.2** - Crosshair readout
+  - Show (t, value) saat hover ✅
+  - Floating tooltip dengan signal info ✅
 
-- [ ] **P4.3** - Hover effects
-  - Cursor change
-  - Highlight active element
+- [x] **P4.3** - Hover effects
+  - Cursor change (crosshair) ✅
+  - Highlight active element ✅
+
+### Files Created/Modified
+- `src/ui/cursorSync.js` - NEW: Cursor tracking module
+- `src/ui/tooltipManager.js` - NEW: Tooltip manager for cursor readout
+- `src/renderers/timeSeries.js` - MODIFIED: Integrated cursor tracking & crosshair
+- `src/main.js` - MODIFIED: Added tooltipManager initialization
+- `src/styles.css` - MODIFIED: Added cursor tooltip styles
+- `index.html` - MODIFIED: Added cursor-tooltip element
+- `tools/renderers.test.js` - MODIFIED: Added addEventListener stub
+
+### Status
+Phase 4 **SELESAI** - Cursor sync & crosshair readout implemented
 
 ---
 
 ## Phase 5: Help & Documentation
 
 ### Tasks
-- [ ] **P5.1** - Contextual tooltips
-  - Hover di semua interactive elements
-  - Technical explanation
+- [x] **P5.1** - Contextual tooltips
+  - Hover di semua interactive elements ✅
+  - Technical explanation ✅
 
-- [ ] **P5.2** - Tutorial overlay
-  - First visit only
-  - 3-5 step guided tour
+- [x] **P5.2** - Tutorial overlay
+  - First visit only (localStorage) ✅
+  - 5 step guided tour ✅
 
-- [ ] **P5.3** - Info panel
-  - Stability margin
-  - Time elapsed
-  - Current scenario
+- [x] **P5.3** - Info panel
+  - Stability margin ✅
+  - Time elapsed ✅
+  - Current scenario ✅
+  - Running status ✅
+  - Fault indicator ✅
+
+### Files Created/Modified
+- `src/ui/contextualTooltips.js` - NEW: Contextual tooltips for all interactive elements
+- `src/ui/tutorialOverlay.js` - NEW: 5-step tutorial for first-time users
+- `src/ui/infoPanel.js` - NEW: Real-time status info panel
+- `src/main.js` - MODIFIED: Integrated all Phase 5 modules
+
+### Status
+Phase 5 **SELESAI** - Help & documentation implemented
 
 ---
 
@@ -167,12 +190,12 @@ Phase 3 **SELESAI** - Semua fitur time series sudah diimplementasikan di Phase 2
 | P1 - Core Layout | ✅ Completed | 100% |
 | P2 - Controls | ✅ Completed | 100% |
 | P3 - Time Series | ✅ Completed | 100% |
-| P4 - Measurement | ⏳ Not Started | 0% |
-| P5 - Help | ⏳ Not Started | 0% |
+| P4 - Measurement | ✅ Completed | 100% |
+| P5 - Help | ✅ Completed | 100% |
 | P6 - Polish | ⏳ Not Started | 0% |
 | P7 - Testing | ⏳ Not Started | 0% |
 
-**Overall: 43% (3/7 phases complete)**
+**Overall: 71% (5/7 phases complete)**
 
 ---
 

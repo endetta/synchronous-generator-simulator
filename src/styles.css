@@ -567,6 +567,30 @@ body {
   background: var(--text-secondary);
 }
 
+/* Cursor sync & crosshair */
+.cursor-tooltip {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid var(--accent-red);
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-family: 'Consolas', 'Monaco', monospace;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  z-index: 1000;
+}
+
+#timeseries-canvas {
+  cursor: crosshair;
+}
+
+#timeseries-canvas:hover {
+  background-color: var(--bg-secondary);
+}
+
 /* Responsive adjustments */
 @media (max-width: 1600px) {
   #phasor-svg {

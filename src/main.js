@@ -14,6 +14,10 @@ import { renderRLRChart } from './renderers/rlrChart.js';
 import { initControls, updateStatusDisplay } from './ui/controls.js';
 import { initPanels } from './ui/panels.js';
 import { initTooltip } from './ui/tooltip.js';
+import { initTooltipManager } from './ui/tooltipManager.js';
+import { initContextualTooltips } from './ui/contextualTooltips.js';
+import { initTutorialOverlay } from './ui/tutorialOverlay.js';
+import { initInfoPanel } from './ui/infoPanel.js';
 import { checkOOS } from './ui/oosAlarm.js';
 import { applyScenario, SCENARIOS } from './scenarios.js';
 
@@ -64,6 +68,18 @@ function initializeApp() {
   const phasorSvg = document.getElementById('phasor-svg');
   const tooltip = document.getElementById('tooltip');
   initTooltip(phasorSvg, tooltip);
+
+  // Setup cursor sync tooltip manager for time series
+  initTooltipManager();
+
+  // Setup contextual tooltips for interactive elements
+  initContextualTooltips();
+
+  // Setup tutorial overlay for first-time users
+  initTutorialOverlay();
+
+  // Setup info panel for status display
+  initInfoPanel(state);
 
   // Subscribe to state changes for re-rendering
   onChange(() => {

@@ -173,16 +173,52 @@ python -m http.server 8000
 - **File HTML/CSS/JS = Bahasa Indonesia** untuk label UI; komentar kode boleh Inggris
   atau Indonesia. Jangan terjemahkan istilah teknis (swing, droop, governor).
 
-## Status migrasi (2026-09-07)
+## Workflow Implementasi
+
+Untuk fitur/task besar (> 4 jam estimasi), gunakan **phase-based workflow**:
+
+### 1. Spec Final → Create Plan File
+Jika spec sudah final (seperti output "Design Tree Final"):
+1. Simpan spec di `design-plans/plan-<fitur>.md`
+2. Gunakan checklist dari spec sebagai tracking
+
+### 2. Implementasi Per Phase
+JANGAN kerjakan semua phase sekaligus. Pattern yang terbukti efektif:
+
+```
+User: "Kerjakan Phase 1, commit dengan pesan 'feat(ui): phase 1 core layout'"
+→ Agent implement → test → commit
+→ User: "Lanjut Phase 2 dari commit terakhir"
+→ Repeat per phase
+```
+
+**Per phase:**
+1. Implement sesuai checklist
+2. Jalankan tes relevan
+3. Commit dengan pesan conventional
+4. Update status di plan file (✅ untuk selesai)
+
+### 3. Skill vs Direct Command
+- **Gunakan skill** (`/to-spec`, `/to-tickets`) untuk task baru yang kompleks
+- **Langsung command** untuk task kecil/bug fix
+- **Phase-based** jika spec sudah final dengan checklist
+
+### 4. Checkpoint & Recovery
+- Tiap phase = checkpoint yang bisa di-revert
+- Jika session mati, baca `design-plans/plan-*.md` → lanjut dari phase berikutnya
+- Jangan overallocate: maksimal 2-3 phase per session
+
+## Status migrasi (2026-09-08)
 
 - ✅ Folder structure created
 - ✅ `index.html` entry point
 - ✅ `CLAUDE.md` (ini)
-- ⏳ `docs/PRD.md` (next)
+- ✅ `docs/PRD.md`
+- ✅ `src/` modules (physics, renderers, ui)
+- ✅ `src/styles.css`
+- ✅ Git init + remote setup
+- ⏳ `tools/` test harness (next)
 - ⏳ `docs/overview.md`
-- ⏳ `src/` modules
-- ⏳ `tools/` test harness
-- ⏳ Git init + remote setup
 
-Fase 2-5 (ekstraksi modul + tes) belum mulai. Lihat `design-plans/plan-modular-migration.md`
-untuk roadmap lengkap.
+Recent commits menunjukkan progress aktif. Lihat `design-plans/` untuk plan aktif.
+Log sesi terbaru: `sesi-2026-09-08-*.md` (jika ada).
