@@ -146,13 +146,15 @@ function simulate(dt) {
   history.Pe.push({ t: state.simTime, v: state.Pe });
   history.Pm.push({ t: state.simTime, v: state.Pm });
 
-  // Keep only last 1000 points for performance
+  // Keep only last 1000 points for performance - optimized to reduce allocations
   const maxPoints = 1000;
-  if (history.delta.length > maxPoints) {
-    history.delta = history.delta.slice(-maxPoints);
-    history.omega = history.omega.slice(-maxPoints);
-    history.Pe = history.Pe.slice(-maxPoints);
-    history.Pm = history.Pm.slice(-maxPoints);
+  const historyArrays = [history.delta, history.omega, history.Pe, history.Pm];
+
+  // Check if we need to trim (only when significantly over limit to avoid frequent ops)
+  for (const arr of historyArrays) {
+    if (arr.length > maxPoints * 1.2) {  // Only trim when 20% over limit
+      arr.splice(0, arr.length - maxPoints);  // In-place removal, less allocation
+    }
   }
 
   // Check out-of-step

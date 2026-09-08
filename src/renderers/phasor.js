@@ -39,7 +39,10 @@ export function renderPhasor(svg, state, params) {
   // Reference frame rotation angle (simulates synchronous rotation)
   const refAngle = running ? animationTime : 0;
 
-  console.log('renderPhasor:', { cx, cy, delta: delta * 180 / Math.PI, scale, running, refAngle: refAngle * 180 / Math.PI });
+  // Debug logging disabled for production - uncomment if needed
+  // if (window.DEBUG_RENDER) {
+  //   console.log('renderPhasor:', { cx, cy, delta: delta * 180 / Math.PI, scale, running, refAngle: refAngle * 180 / Math.PI });
+  // }
 
   // Clear SVG
   svg.innerHTML = '';

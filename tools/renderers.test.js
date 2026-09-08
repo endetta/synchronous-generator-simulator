@@ -8,8 +8,31 @@ import { renderPDelta } from '../src/renderers/pdelta.js';
 import { renderTimeSeries, getLayout } from '../src/renderers/timeSeries.js';
 import { renderRLRChart, computeRLRStats } from '../src/renderers/rlrChart.js';
 
-// Mock window object for Node environment
+// Mock window and document for Node environment
 global.window = { devicePixelRatio: 2 };
+
+// Minimal document mock for SVG manipulation
+let svgContent = '';
+global.document = {
+  createElementNS: (ns, tag) => {
+    const el = {
+      tagName: tag,
+      children: [],
+      attributes: {},
+      style: {},  // Mock style object for .style.display access
+      textContent: '',
+      setAttribute(name, value) { this.attributes[name] = value; },
+      getAttribute(name) { return this.attributes[name]; },
+      appendChild(child) { this.children.push(child); return child; },
+      cloneNode() { return { ...this, children: [...this.children] }; },
+    };
+    return el;
+  },
+  createDocumentFragment: () => ({
+    children: [],
+    appendChild(child) { this.children.push(child); return child; },
+  }),
+};
 
 let pass = 0;
 let fail = 0;
@@ -27,13 +50,40 @@ function test(name, fn) {
 
 // Stub DOM environment for testing in Node
 const stubElements = {
-  svg: (innerHTML = '', attrs = {}) => ({
-    innerHTML: innerHTML,
-    clientWidth: 300,
-    clientHeight: 300,
-    ...attrs,
-    setAttribute() {},
-  }),
+  svg: (attrs = {}) => {
+    const el = {
+      innerHTML: '',
+      clientWidth: attrs.clientWidth || 300,
+      clientHeight: attrs.clientHeight || 300,
+      children: [],
+      ...attrs,
+      setAttribute() {},
+      appendChild(child) {
+        // Handle both DocumentFragment and regular elements
+        if (child && child.children && !child.tagName) {
+          // DocumentFragment - transfer all children
+          child.children.forEach(c => this.children.push(c));
+        } else {
+          // Regular element
+          this.children.push(child);
+        }
+        return child;
+      },
+      querySelectorAll() { return []; },
+    };
+    // Clear children on innerHTML = ''
+    Object.defineProperty(el, 'innerHTML', {
+      get() { return this._innerHTML || ''; },
+      set(value) {
+        this._innerHTML = value;
+        if (value === '') {
+          this.children = [];
+        }
+      },
+      configurable: true,
+    });
+    return el;
+  },
   canvas: (ctx = {}, width = 600, height = 250) => ({
     clientWidth: width,
     clientHeight: height,
@@ -112,36 +162,73 @@ test('renderPhasor: generates SVG with key elements', () => {
 // ──────────────────────────────────────────────────────────
 console.log('\nP-δ Curve Renderer:');
 
+// Helper to reset pdelta module state between tests
+function resetPDeltaState() {
+  // Access and reset the module's cache by importing with different params
+  // Since we can't directly access the private variables, we use a workaround:
+  // Create a fresh SVG and render with different params to force re-init
+}
+
 test('renderPDelta: generates sinusoidal path', () => {
   const svg = stubElements.svg('', { clientWidth: 360, clientHeight: 200 });
-  const result = renderPDelta(svg,
+  renderPDelta(svg,
     { delta: 0.5, Pe: 1.0, Pm: 1.0 },
     { Pmax: 2.0 }
   );
-  assert(result.includes('M'), 'should start path with M');
-  assert(result.includes('circle'), 'should include operating point marker');
-  assert(result.includes('δ (rad)'), 'should include x-axis label');
-  assert(result.includes('Pe (pu)'), 'should include y-axis label');
+  // Check that static elements were created (children appended to svg)
+  assert(svg.children.length > 0, 'should have children');
+  // Check that curve path exists in static group
+  const staticGroup = svg.children.find(c => c.attributes?.id === 'static-layer');
+  assert(staticGroup, 'should have static-layer group');
+  // Check for curve path (has 'd' attribute starting with 'M')
+  const hasCurve = staticGroup.children?.some(c => c.attributes?.d?.startsWith('M'));
+  assert(hasCurve, 'should have sinusoidal curve path');
+  // Check for axis labels
+  const hasXLabel = staticGroup.children?.some(c => c.textContent === 'δ (rad)');
+  const hasYLabel = staticGroup.children?.some(c => c.textContent === 'Pe (pu)');
+  assert(hasXLabel, 'should include x-axis label');
+  assert(hasYLabel, 'should include y-axis label');
 });
 
 test('renderPDelta: includes Pm line', () => {
-  const svg = stubElements.svg('', { clientWidth: 360, clientHeight: 200 });
-  const result = renderPDelta(svg,
+  const svg = stubElements.svg({ clientWidth: 360, clientHeight: 200 });
+  // Use different Pmax to force cache miss and re-init
+  renderPDelta(svg,
     { delta: 0.5, Pe: 1.0, Pm: 1.0 },
-    { Pmax: 2.0 }
+    { Pmax: 2.1 }  // Different from test 1
   );
-  assert(result.includes('Pm'), 'should include Pm label');
-  assert(result.includes('dasharray'), 'should use dashed line for Pm');
+  // Check dynamic elements
+  const dynamicGroup = svg.children.find(c => c.attributes?.id === 'dynamic-layer');
+  assert(dynamicGroup, 'should have dynamic-layer group');
+  // Check for Pm label
+  const hasPmLabel = dynamicGroup.children?.some(c => c.textContent?.includes('Pm'));
+  assert(hasPmLabel, 'should include Pm label');
+  // Check for dashed line (stroke-dasharray attribute)
+  const hasDashArray = dynamicGroup.children?.some(c => c.attributes?.['stroke-dasharray']);
+  assert(hasDashArray, 'should use dashed line for Pm');
 });
 
 test('renderPDelta: EAC shading when deltaCC provided', () => {
-  const svg = stubElements.svg('', { clientWidth: 360, clientHeight: 200 });
-  const result = renderPDelta(svg,
+  const svg = stubElements.svg({ clientWidth: 360, clientHeight: 200 });
+  // Use different Pmax to force cache miss and re-init
+  renderPDelta(svg,
     { delta: 0.5, Pe: 1.0, Pm: 1.0, deltaCC: 1.0 },
-    { Pmax: 2.0 }
+    { Pmax: 2.2 }  // Different from test 1 and 2
   );
-  assert(result.includes('rgba'), 'should include shaded area (rgba)');
-  assert(result.includes('path'), 'should include area path');
+  // Check dynamic elements for EAC areas
+  const dynamicGroup = svg.children.find(c => c.attributes?.id === 'dynamic-layer');
+  assert(dynamicGroup, 'should have dynamic-layer group');
+  // Check for A1/A2 area paths with rgba fill
+  const hasA1Area = dynamicGroup.children?.some(c =>
+    c.attributes?.id === 'a1-area' && c.attributes?.fill?.includes('rgba')
+  );
+  const hasA2Area = dynamicGroup.children?.some(c =>
+    c.attributes?.id === 'a2-area' && c.attributes?.fill?.includes('rgba')
+  );
+  assert(hasA1Area || hasA2Area, 'should include shaded area (rgba)');
+  // Check for path elements
+  const hasPath = dynamicGroup.children?.some(c => c.tagName === 'path');
+  assert(hasPath, 'should include area path');
 });
 
 

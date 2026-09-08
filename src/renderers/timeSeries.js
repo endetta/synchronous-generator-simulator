@@ -4,6 +4,8 @@
 // Supports DPR (device pixel ratio) scaling for retina displays.
 // Features sliding window for smooth visualization over time.
 // Includes cursor sync & crosshair readout.
+//
+// OPTIMIZED: Throttled cursor tracking, cached layout, binary search for hit testing.
 
 const WINDOW_SIZE = 10; // Show last 10 seconds of data
 
@@ -19,7 +21,19 @@ const cursorState = {
 // Track if cursor tracking has been setup
 let cursorTrackingSetup = false;
 
-// Setup cursor tracking on canvas
+// Performance optimization: Cache for canvas dimensions
+let cachedLayout = null;
+let layoutNeedsUpdate = true;
+
+// Performance optimization: Throttle cursor tracking with rAF
+let cursorRafId = null;
+let pendingCursorEvent = null;
+
+// Performance optimization: Cached canvas rect
+let cachedCanvasRect = null;
+let lastCanvasId = null;
+
+// Setup cursor tracking on canvas with throttling
 function setupCursorTracking(canvas, data, timeRange, valueRange) {
   const [tMin, tMax] = timeRange;
   const [vMin, vMax] = valueRange;
@@ -27,45 +41,92 @@ function setupCursorTracking(canvas, data, timeRange, valueRange) {
 
   canvas.addEventListener('mouseenter', () => {
     cursorState.active = true;
+    // Cache rect on mouseenter (good time to update)
+    cachedCanvasRect = canvas.getBoundingClientRect();
     notifyCursorChange();
   });
 
   canvas.addEventListener('mousemove', (e) => {
     if (!cursorState.active) return;
 
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    cursorState.x = x;
-    cursorState.y = y;
-
-    // Calculate time from x position
-    const plotW = rect.width - padding.left - padding.right;
-    const normalizedX = Math.max(0, Math.min(1, (x - padding.left) / plotW));
-    cursorState.time = tMin + normalizedX * (tMax - tMin);
-
-    // Find exact value from data
-    if (data && data.length > 0) {
-      let closest = data[0];
-      let minDist = Math.abs(data[0].t - cursorState.time);
-
-      for (let i = 1; i < data.length; i++) {
-        const dist = Math.abs(data[i].t - cursorState.time);
-        if (dist < minDist) {
-          minDist = dist;
-          closest = data[i];
-        }
-      }
-
-      cursorState.value = closest.v;
+    // Throttle with requestAnimationFrame - skip if pending frame exists
+    if (cursorRafId) {
+      pendingCursorEvent = e; // Store latest event
+      return;
     }
 
-    notifyCursorChange();
+    cursorRafId = requestAnimationFrame(() => {
+      cursorRafId = null;
+
+      const event = pendingCursorEvent || e;
+      pendingCursorEvent = null;
+
+      // Use cached rect instead of forcing reflow
+      if (!cachedCanvasRect) {
+        cachedCanvasRect = canvas.getBoundingClientRect();
+      }
+
+      const rect = cachedCanvasRect;
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+
+      cursorState.x = x;
+      cursorState.y = y;
+
+      // Calculate time from x position
+      const plotW = rect.width - padding.left - padding.right;
+      const normalizedX = Math.max(0, Math.min(1, (x - padding.left) / plotW));
+      cursorState.time = tMin + normalizedX * (tMax - tMin);
+
+      // OPTIMIZED: Binary search instead of linear search O(log n) vs O(n)
+      if (data && data.length > 0) {
+        const targetTime = cursorState.time;
+        let left = 0;
+        let right = data.length - 1;
+
+        // Binary search for closest time
+        while (left < right) {
+          const mid = Math.floor((left + right) / 2);
+          if (data[mid].t < targetTime) {
+            left = mid + 1;
+          } else {
+            right = mid;
+          }
+        }
+
+        // Check neighbors to find exact closest
+        let closest = data[left];
+        let minDist = Math.abs(closest.t - targetTime);
+
+        if (left > 0) {
+          const prevDist = Math.abs(data[left - 1].t - targetTime);
+          if (prevDist < minDist) {
+            closest = data[left - 1];
+            minDist = prevDist;
+          }
+        }
+
+        if (left < data.length - 1) {
+          const nextDist = Math.abs(data[left + 1].t - targetTime);
+          if (nextDist < minDist) {
+            closest = data[left + 1];
+          }
+        }
+
+        cursorState.value = closest.v;
+      }
+
+      notifyCursorChange();
+    });
   });
 
   canvas.addEventListener('mouseleave', () => {
     cursorState.active = false;
+    cachedCanvasRect = null; // Clear cache
+    if (cursorRafId) {
+      cancelAnimationFrame(cursorRafId);
+      cursorRafId = null;
+    }
     notifyCursorChange();
   });
 }
@@ -125,20 +186,38 @@ let currentSignal = 'delta';
 if (typeof window !== 'undefined') {
   window.addEventListener('signal-change', (e) => {
     currentSignal = e.detail.signal;
+    layoutNeedsUpdate = true; // Signal change may need layout update
   });
 }
 
-// Compute layout dimensions based on canvas and DPR.
+// OPTIMIZED: Compute layout dimensions with caching to avoid unnecessary resizes
 export function getLayout(canvas) {
   const dpr = window.devicePixelRatio || 1;
   const width = canvas.clientWidth || 600;
   const height = canvas.clientHeight || 350;
 
-  // Set canvas backing store size
-  canvas.width = width * dpr;
-  canvas.height = height * dpr;
+  // Check if we need to update (dimensions or DPR changed)
+  if (cachedLayout &&
+      cachedLayout.width === width &&
+      cachedLayout.height === height &&
+      cachedLayout.dpr === dpr &&
+      !layoutNeedsUpdate) {
+    return cachedLayout;
+  }
 
-  return { dpr, width, height };
+  // Only resize backing store if dimensions actually changed
+  if (!cachedLayout ||
+      cachedLayout.width !== width ||
+      cachedLayout.height !== height ||
+      cachedLayout.dpr !== dpr) {
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+  }
+
+  cachedLayout = { dpr, width, height };
+  layoutNeedsUpdate = false;
+
+  return cachedLayout;
 }
 
 // Render time series for the currently selected signal.
@@ -362,10 +441,14 @@ export function renderTimeSeries(canvas, data) {
     ctx.fillText(valueText, labelX, y);
   }
 
-  // Setup cursor tracking if not already done
+  // Setup cursor tracking if not already done (only once per canvas)
   if (!cursorTrackingSetup && typeof window !== 'undefined') {
-    setupCursorTracking(canvas, signalData, [windowMin, windowMax], [vMin, vMax]);
-    cursorTrackingSetup = true;
+    const canvasId = canvas.id || canvas;
+    if (lastCanvasId !== canvasId) {
+      setupCursorTracking(canvas, signalData, [windowMin, windowMax], [vMin, vMax]);
+      cursorTrackingSetup = true;
+      lastCanvasId = canvasId;
+    }
   }
 
   // Draw crosshair if cursor is active
