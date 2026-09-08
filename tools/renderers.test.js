@@ -7,6 +7,8 @@ import { computePhasorCoords, renderPhasor } from '../src/renderers/phasor.js';
 import { renderPDelta } from '../src/renderers/pdelta.js';
 import { renderTimeSeries, getLayout } from '../src/renderers/timeSeries.js';
 import { renderRLRChart, computeRLRStats } from '../src/renderers/rlrChart.js';
+import { renderFieldAnimation, computeFieldCoords } from '../src/renderers/fieldAnimation.js';
+import { renderGovernorGauge, renderGovernorTracking } from '../src/renderers/governorGauge.js';
 
 // Mock window and document for Node environment
 global.window = { devicePixelRatio: 2 };
@@ -92,6 +94,7 @@ const stubElements = {
     setTransform() {},
     addEventListener() {}, // Stub for cursor tracking
     removeEventListener() {}, // Stub for cursor tracking
+    getBoundingClientRect() { return { width, height, left: 0, top: 0 }; },
   }),
 };
 
@@ -110,8 +113,13 @@ function makeCtx() {
     fill() {},
     arc() {},
     setTransform() {},
+    scale() {},
     save() {},
     restore() {},
+    translate() {},
+    rotate() {},
+    clearRect() {},
+    setLineDash() {},
     createLinearGradient() { return { addColorStop() {} }; },
     measureText() { return { width: 50 }; },
   };
@@ -310,6 +318,85 @@ test('renderRLRChart: generates canvas content', () => {
   assert.doesNotThrow(() => {
     renderRLRChart(canvas, data, 5);
   });
+});
+
+
+// ──────────────────────────────────────────────────────────
+// FIELD ANIMATION RENDERER TESTS
+// ──────────────────────────────────────────────────────────
+console.log('\nField Animation Renderer:');
+
+test('computeFieldCoords: returns correct field angles', () => {
+  const state = { delta: Math.PI / 6, Efd: 1.0 };
+  const coords = computeFieldCoords(state, { statorRadius: 125, rotorRadius: 70 });
+  assert(coords.statorFieldAngle === 0, 'stator field angle should be 0 at t=0');
+  assert(Math.abs(coords.rotorFieldAngle - Math.PI / 6) < 1e-10, 'rotor field angle = delta');
+  assert(coords.torque === Math.sin(Math.PI / 6), 'torque = sin(delta)');
+});
+
+test('renderFieldAnimation: generates SVG with stator and rotor', () => {
+  const svg = stubElements.svg({ clientWidth: 300, clientHeight: 300 });
+  const state = { delta: 0.5, omega: 1.0, running: false, Efd: 1.0, Ea: 1.2 };
+  const result = renderFieldAnimation(svg, state, { showFluxLines: true, showTorque: true });
+  assert(result.includes('circle'), 'should include stator/rotor circles');
+  assert(result.includes('N') || result.includes('S'), 'should include pole markers');
+});
+
+test('renderFieldAnimation: shows torque indicator', () => {
+  const svg = stubElements.svg({ clientWidth: 300, clientHeight: 300 });
+  const state = { delta: Math.PI / 4, omega: 1.0, running: false, Efd: 1.0, Ea: 1.2 };
+  const result = renderFieldAnimation(svg, state, { showFluxLines: true, showTorque: true });
+  assert(result.includes('sin') || result.includes('δ'), 'should include torque/angle label');
+});
+
+
+// ──────────────────────────────────────────────────────────
+// GOVERNOR GAUGE RENDERER TESTS
+// ──────────────────────────────────────────────────────────
+console.log('\nGovernor Gauge Renderer:');
+
+test('renderGovernorGauge: generates valve position gauge', () => {
+  const svg = stubElements.svg({ clientWidth: 200, clientHeight: 150 });
+  const state = { valvePosition: 1.0, Pm: 1.0, Pref: 1.0 };
+  const result = renderGovernorGauge(svg, state, { R: 0.05, Pmax: 2.0 });
+  assert(result.includes('path'), 'should include gauge arc path');
+  assert(result.includes('%'), 'should include percentage label');
+});
+
+test('renderGovernorGauge: color codes valve position', () => {
+  const svg = stubElements.svg({ clientWidth: 200, clientHeight: 150 });
+  // High valve position (>80%) should show yellow/red color
+  const state = { valvePosition: 1.9, Pm: 1.9, Pref: 1.0 };
+  const result = renderGovernorGauge(svg, state, { R: 0.05, Pmax: 2.0 });
+  // Should have warning color for high load
+  assert(result.includes('#dc3545') || result.includes('#ffc107'), 'should use warning color for high load');
+});
+
+test('renderGovernorTracking: handles empty data gracefully', () => {
+  const canvas = stubElements.canvas(makeCtx(), 300, 120);
+  const emptyData = { time: [], Pref: [], Pm: [] };
+  assert.doesNotThrow(() => {
+    renderGovernorTracking(canvas, emptyData, { windowSize: 10 });
+  });
+});
+
+test('renderGovernorTracking: plots tracking data', () => {
+  const draws = [];
+  const ctx = makeCtx();
+  ctx.beginPath = () => draws.push('beginPath');
+  ctx.moveTo = () => draws.push('moveTo');
+  ctx.lineTo = () => draws.push('lineTo');
+  ctx.stroke = () => draws.push('stroke');
+
+  const canvas = stubElements.canvas(ctx, 300, 120);
+  const data = {
+    time: [0, 1, 2, 3, 4, 5],
+    Pref: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+    Pm: [0.8, 0.85, 0.9, 0.95, 0.98, 1.0],
+  };
+  renderGovernorTracking(canvas, data, { windowSize: 10 });
+  assert(draws.includes('beginPath'), 'should begin path');
+  assert(draws.includes('stroke'), 'should stroke path');
 });
 
 
