@@ -12,6 +12,7 @@ import { renderPhasor } from './renderers/phasor.js';
 import { renderPDelta } from './renderers/pdelta.js';
 import { renderTimeSeries } from './renderers/timeSeries.js';
 import { renderRLRChart } from './renderers/rlrChart.js';
+import { renderFieldAnimation } from './renderers/fieldAnimation.js';
 import { initControls, updateStatusDisplay } from './ui/controls.js';
 import { initPanels } from './ui/panels.js';
 import { initTooltip } from './ui/tooltip.js';
@@ -206,6 +207,12 @@ function renderAll() {
   const phasorSvg = document.getElementById('phasor-svg');
   if (phasorSvg) {
     renderPhasor(phasorSvg, state, { V: 1.0, Ea: state.Ea, X: 0.3 });
+  }
+
+  // Render field animation
+  const fieldSvg = document.getElementById('field-svg');
+  if (fieldSvg) {
+    renderFieldAnimation(fieldSvg, state, { showFluxLines: true, showTorque: true });
   }
 
   // Render P-δ curve
