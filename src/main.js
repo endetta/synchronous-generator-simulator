@@ -81,9 +81,10 @@ function initializeApp() {
   // Setup info panel for status display
   initInfoPanel(state);
 
-  // Subscribe to state changes for re-rendering
+  // Subscribe to state changes ONLY for UI controls (not rendering)
+  // Rendering happens in main loop (renderAll() called once per frame)
   onChange(() => {
-    renderAll();
+    updateStatusDisplay(state);
   });
 
   // Initial render

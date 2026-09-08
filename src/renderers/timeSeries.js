@@ -262,12 +262,10 @@ export function renderTimeSeries(canvas, data) {
   const plotHeight = height - padding.top - padding.bottom;
 
   // Determine time range with sliding window
-  let tMin = Infinity;
-  let tMax = -Infinity;
-  signalData.forEach(p => {
-    if (p.t < tMin) tMin = p.t;
-    if (p.t > tMax) tMax = p.t;
-  });
+  // OPTIMIZED: Use last point for tMax (array is in chronological order)
+  // Avoid O(n) iteration over entire array every frame
+  let tMax = signalData.length > 0 ? signalData[signalData.length - 1].t : 0;
+  let tMin = signalData.length > 0 ? signalData[0].t : 0;
   if (!isFinite(tMin)) { tMin = 0; tMax = 1; }
 
   // Apply sliding window: show only last WINDOW_SIZE seconds
@@ -361,7 +359,25 @@ export function renderTimeSeries(canvas, data) {
   ctx.fillText('Waktu (s)', padding.left + plotWidth / 2, height - 10);
 
   // Filter data to sliding window
-  const windowData = signalData.filter(p => p.t >= windowMin && p.t <= windowMax);
+  // OPTIMIZED: Binary search to find start index, then slice (no new array creation)
+  // Data is chronological, so we can use binary search for windowMin
+  let startIdx = 0;
+  if (signalData.length > 100) {
+    // Binary search for first point >= windowMin
+    let left = 0, right = signalData.length - 1;
+    while (left < right) {
+      const mid = Math.floor((left + right) / 2);
+      if (signalData[mid].t < windowMin) {
+        left = mid + 1;
+      } else {
+        right = mid;
+      }
+    }
+    startIdx = left;
+  }
+
+  // Use slice view (no copy) or iterate from startIdx
+  const windowData = startIdx > 0 ? signalData.slice(startIdx) : signalData;
 
   if (windowData.length < 2) return;
 
