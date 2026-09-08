@@ -89,3 +89,40 @@ export function computeEACAreas(delta0, delta, Pm, Pmax, dt, steps) {
 
   return { A_acc, A_dec, balanced: Math.abs(A_acc - A_dec) < 0.01 };
 }
+
+/**
+ * Compute Critical Clearing Time (CCT) for a three-phase fault.
+ *
+ * During a 3-phase fault, Pmax ≈ 0 (no electrical power transfer).
+ * The swing equation simplifies to:
+ *   d²δ/dt² = Pm / M  (constant acceleration)
+ *
+ * Solution:
+ *   δ(t) = δ₀ + ½·(Pm/M)·t²
+ *
+ * Solving for t when δ = δcc:
+ *   CCT = √[2·M·(δcc - δ₀) / Pm]
+ *
+ * @param {number} delta0 - Initial rotor angle (rad)
+ * @param {number} deltaCC - Critical clearing angle (rad)
+ * @param {number} Pm - Mechanical power (pu)
+ * @param {number} H - Inertia constant (s)
+ * @param {number} f0 - System frequency (Hz)
+ * @returns {number} Critical clearing time (s)
+ */
+export function computeCCT(delta0, deltaCC, Pm, H, f0) {
+  // Compute inertia coefficient M = 2H / (ωs)
+  const ws = 2 * Math.PI * f0;  // synchronous angular velocity (rad/s)
+  const M = 2 * H / ws;
+
+  // CCT formula (from Kundur 11.4)
+  // CCT = √[2·M·(δcc - δ₀) / Pm]
+  if (Pm <= 0) {
+    // No mechanical power → infinite time (never reaches critical angle)
+    return Infinity;
+  }
+
+  const CCT = Math.sqrt(2 * M * (deltaCC - delta0) / Pm);
+
+  return CCT;
+}

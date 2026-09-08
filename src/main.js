@@ -5,7 +5,8 @@ import { state, onChange, commit } from './state.js';
 import { CONSTANTS } from './constants.js';
 import { rk4Step, computePe } from './physics/swing.js';
 import { makeTgov1State, tgov1Step } from './physics/tgov1.js';
-import { computeCriticalClearingAngle, checkStability } from './physics/eac.js';
+import { makeAVRState, avrStep } from './physics/avr.js';
+import { computeCriticalClearingAngle, checkStability, computeCCT } from './physics/eac.js';
 import { getRLRLoad } from './physics/rlr.js';
 import { renderPhasor } from './renderers/phasor.js';
 import { renderPDelta } from './renderers/pdelta.js';
@@ -26,6 +27,7 @@ import { applyScenario, SCENARIOS } from './scenarios.js';
 // ──────────────────────────────────────────────────────────
 
 let governorState = makeTgov1State();
+let avrState = makeAVRState();
 let lastFrameTime = 0;
 let history = {
   delta: [], omega: [], Pe: [], Pm: [], simTime: [],
@@ -109,8 +111,10 @@ function simulate(dt) {
   let currentPref = state.Pref;
 
   if (state.rlrEnabled) {
-    state.rlrTime += dt / 3600; // convert seconds to hours (in real-time scale)
-    const load = getRLRLoad(state.rlrTime * CONSTANTS.SPEED); // scaled to 2400x
+    // RLR time scaling: dt is simulation timestep, SPEED is 2400x multiplier
+    // Convert: (dt seconds × SPEED) gives simulated seconds, divide by 3600 for hours
+    state.rlrTime += (dt * CONSTANTS.SPEED) / 3600;
+    const load = getRLRLoad(state.rlrTime);
     currentPref = load;
     currentPm = load;
   }
@@ -118,8 +122,34 @@ function simulate(dt) {
   // Governor step (pass droop from state instead of CONSTANTS)
   governorState = tgov1Step(governorState, currentPref, state.Pm, state.droop, dt);
 
-  // Use Pm from governor (mechanical power)
-  state.Pm = governorState.y;
+  // Use valve position from governor (mechanical power)
+  state.Pm = governorState.valvePosition;
+
+  // AVR step (if enabled)
+  if (state.avrEnabled) {
+    // Compute terminal voltage (simplified: assume Vt ≈ V = 1.0 pu)
+    state.Vt = 1.0;
+
+    // AVR parameters from CONSTANTS
+    const avrParams = {
+      Ka: CONSTANTS.AVR_KA,
+      Ta: CONSTANTS.AVR_TA,
+      Ke: CONSTANTS.AVR_KE,
+      Te: CONSTANTS.AVR_TE,
+      Vrmin: CONSTANTS.AVR_VRMIN,
+      Vrmax: CONSTANTS.AVR_VRMAX,
+      Efdmin: CONSTANTS.AVR_EFDMIN,
+      Efdmax: CONSTANTS.AVR_EFDMAX,
+    };
+
+    // AVR dynamics step
+    avrState = avrStep(avrState, state.Vref, state.Vt, avrParams, dt);
+    state.Efd = avrState.Efd;
+
+    // Update internal EMF magnitude E' from field voltage
+    // E' ≈ Efd (simplified, assuming unity exciter gain)
+    state.Ea = state.Efd;
+  }
 
   // Compute electrical power
   state.Pe = computePe(state.delta, CONSTANTS.Pmax);
@@ -175,7 +205,7 @@ function renderAll() {
   // Render phasor diagram
   const phasorSvg = document.getElementById('phasor-svg');
   if (phasorSvg) {
-    renderPhasor(phasorSvg, state, { V: 1.0, Ea: 1.2, X: 0.3 });
+    renderPhasor(phasorSvg, state, { V: 1.0, Ea: state.Ea, X: 0.3 });
   }
 
   // Render P-δ curve

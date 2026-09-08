@@ -5,8 +5,8 @@
 import assert from 'node:assert/strict';
 import { rk4Step, ode, computePe, computePmForSteadyState } from '../src/physics/swing.js';
 import { makeTgov1State, tgov1Step, tgov1SteadyState } from '../src/physics/tgov1.js';
-import { computeCriticalClearingAngle, checkStability, computeEACAreas } from '../src/physics/eac.js';
-import { computeCCT } from '../src/physics/cct.js';
+import { makeAVRState, avrStep } from '../src/physics/avr.js';
+import { computeCriticalClearingAngle, checkStability, computeEACAreas, computeCCT } from '../src/physics/eac.js';
 import { getRLRLoad, getRLRPeriod, getRLRPeak, getRLRMinimum, getRLRProfile } from '../src/physics/rlr.js';
 import { CONSTANTS } from '../src/constants.js';
 
@@ -129,13 +129,13 @@ test('Governor responds to step change in Pref', () => {
   for (let i = 0; i < 500; i++) { // 5 seconds
     const newState = tgov1Step(state, Pref, Pm, R, dt);
     Object.assign(state, newState);
-    Pm = newState.y; // feedback: use valve output as Pm for next step
+    Pm = newState.valvePosition; // feedback: use valve output as Pm for next step
   }
   // With droop R=0.05, steady-state Pm approaches Pref but not exactly
   // Governor output should have opened the valve significantly
-  assert(state.y > 0.5, `valve should open significantly, got ${state.y}`);
+  assert(state.valvePosition > 0.5, `valve should open significantly, got ${state.valvePosition}`);
   // Due to clamping at 2.0 and droop dynamics, accept wider tolerance
-  assert(state.y >= 0.5 && state.y <= 2.0, `Pm in valid range [0.5, 2.0], got ${state.y}`);
+  assert(state.valvePosition >= 0.5 && state.valvePosition <= 2.0, `Pm in valid range [0.5, 2.0], got ${state.valvePosition}`);
 });
 
 test('tgov1SteadyState returns clamped Pref', () => {
@@ -185,16 +185,38 @@ test('computeEACAreas balances A1 and A2 near δcc', () => {
 // ──────────────────────────────────────────────────────────
 console.log('\nCritical Clearing Time:');
 test('computeCCT returns reasonable value', () => {
-  // Use realistic fault scenario: Pm > Pmax_fault causes acceleration
-  const result = computeCCT(
-    Math.PI / 6, // δ₀ = 30°
-    1.5,         // Pm (higher than fault Pmax)
-    2.0,         // Pmax_normal
-    0.5,         // Pmax_fault (severely reduced during fault)
-    0.01         // dt
-  );
-  assert(result.converged === true, `should converge, got deltaFinal=${result.deltaFinal}, deltaCC=${result.deltaCC}`);
-  assert(result.cct > 0 && result.cct < 2.0, `CCT should be 0-2s, got ${result.cct}`);
+  // Compute CCT using the new standalone function
+  const H = CONSTANTS.H;
+  const f0 = CONSTANTS.F0;
+  const delta0 = Math.PI / 6;
+  const Pm = 1.0;
+  const Pmax_normal = CONSTANTS.Pmax;
+  const Pmax_post = Pmax_normal * 0.5; // fault reduces Pmax by 50%
+
+  // Compute δCC for this scenario
+  const eacResult = computeCriticalClearingAngle(delta0, Pm, Pmax_normal, Pmax_post);
+  const deltaCC = eacResult.deltaCC;
+
+  // Compute CCT
+  const cct = computeCCT(delta0, deltaCC, Pm, H, f0);
+
+  assert(cct > 0 && cct < 2.0, `CCT should be 0-2s, got ${cct.toFixed(3)}`);
+});
+
+test('computeCCT handles edge cases', () => {
+  const H = CONSTANTS.H;
+  const f0 = CONSTANTS.F0;
+  const Pm = 1.0;
+  const delta0 = Math.PI / 6;
+  const deltaCC = 1.5; // reasonable critical angle
+
+  const cct = computeCCT(delta0, deltaCC, Pm, H, f0);
+
+  // CCT should be positive for realistic parameters
+  assert(cct > 0, `CCT should be positive, got ${cct}`);
+
+  // With Pm = 1.0, H = 5.0, CCT should be ~0.5-1.0s for reasonable δCC - δ0
+  assert(cct < 2.0, `CCT should be < 2s, got ${cct}`);
 });
 
 // ──────────────────────────────────────────────────────────

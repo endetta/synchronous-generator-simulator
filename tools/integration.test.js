@@ -91,10 +91,13 @@ test('Swing + Governor + EAC chain produces consistent results', () => {
   const dt = CONSTANTS.DT;
   const R = CONSTANTS.R;
 
+  // Initialize governor valve position to match initial Pm
+  governor.valvePosition = Pm;
+
   // Simulate 2 seconds
   for (let i = 0; i < 200; i++) {
     governor = tgov1Step(governor, Pref, Pm, R, dt);
-    Pm = Math.max(0, governor.y);
+    Pm = Math.max(0, governor.valvePosition);
 
     const params = { Pm, Pmax: CONSTANTS.Pmax, D: CONSTANTS.D };
     const next = rk4Step({ delta, omega }, params, dt);

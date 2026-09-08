@@ -20,6 +20,13 @@ export function makeState() {
     valve: 0.0,        // TGOV1 valve position [0..1]
     droop: 0.05,       // droop setting (pu, default 5%)
 
+    // --- AVR ---
+    Vref: 1.0,         // voltage reference setpoint (pu)
+    Vt: 1.0,           // terminal voltage (pu) - feedback from power flow
+    Efd: 1.0,          // field voltage (pu)
+    Ea: 1.2,           // internal EMF magnitude E' (pu)
+    avrEnabled: true,  // AVR control enabled
+
     // --- fault ---
     faultOn: false,     // true while three-phase fault is active
     faultStart: 0,     // sim-time when fault applied (s)
@@ -67,6 +74,8 @@ export function setPe(v)     { state.Pe = v;   commit(); }
 export function setPm(v)     { state.Pm = v;   commit(); }
 export function setPref(v)   { state.Pref = v; commit(); }
 export function setDroop(v)  { state.droop = v; commit(); }
+export function setVref(v)   { state.Vref = v; commit(); }
+export function setAVREnabled(v) { state.avrEnabled = v; commit(); }
 export function setFaultOn(v){ state.faultOn = v; commit(); }
 export function setRunning(v) { state.running = v; commit(); }
 export function setRLREnabled(v) { state.rlrEnabled = v; commit(); }

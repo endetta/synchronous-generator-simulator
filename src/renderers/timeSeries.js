@@ -277,65 +277,41 @@ export function renderTimeSeries(canvas, data) {
   const [vMin, vMax] = signalConfig.range;
   const vRange = vMax - vMin || 1;
 
-  // Draw plot background
-  ctx.fillStyle = '#FAFBFC';
+  // Draw plot background - clean white
+  ctx.fillStyle = '#FFFFFF';
   ctx.fillRect(padding.left, padding.top, plotWidth, plotHeight);
+
+  // Draw subtle vertical grid lines only (no horizontal)
+  ctx.strokeStyle = '#F0F0F0';
+  ctx.lineWidth = 1;
+
+  const numVGrid = 6; // Reduced from 10 for cleaner look
+  for (let i = 1; i < numVGrid; i++) { // Skip first and last
+    const x = padding.left + (plotWidth * i) / numVGrid;
+    ctx.beginPath();
+    ctx.moveTo(x, padding.top);
+    ctx.lineTo(x, padding.top + plotHeight);
+    ctx.stroke();
+  }
+
+  // Draw clean border only
   ctx.strokeStyle = '#E1E4E8';
   ctx.lineWidth = 1;
   ctx.strokeRect(padding.left, padding.top, plotWidth, plotHeight);
 
-  // Draw grid lines (major)
-  ctx.strokeStyle = '#E1E4E8';
-  ctx.lineWidth = 1;
-
-  // Horizontal grid lines (value)
-  const numHGrid = 5;
-  for (let i = 0; i <= numHGrid; i++) {
-    const y = padding.top + (plotHeight * i) / numHGrid;
-    ctx.beginPath();
-    ctx.moveTo(padding.left, y);
-    ctx.lineTo(padding.left + plotWidth, y);
-    ctx.stroke();
-  }
-
-  // Vertical grid lines (time)
-  const numVGrid = 10;
-  for (let i = 0; i <= numVGrid; i++) {
-    const x = padding.left + (plotWidth * i) / numVGrid;
-    ctx.beginPath();
-    ctx.moveTo(x, padding.top);
-    ctx.lineTo(x, padding.top + plotHeight);
-    ctx.stroke();
-  }
-
-  // Draw minor grid lines
-  ctx.strokeStyle = '#F6F8FA';
-  ctx.lineWidth = 0.5;
-  for (let i = 0.5; i < numVGrid; i++) {
-    const x = padding.left + (plotWidth * i) / numVGrid;
-    ctx.beginPath();
-    ctx.moveTo(x, padding.top);
-    ctx.lineTo(x, padding.top + plotHeight);
-    ctx.stroke();
-  }
-
-  // Draw signal label (title)
+  // Draw signal label (title) - clean and minimal
   ctx.fillStyle = '#24292E';
-  ctx.font = 'bold 14px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+  ctx.font = 'bold 13px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
   ctx.textAlign = 'left';
   ctx.textBaseline = 'top';
-  ctx.fillText(signalConfig.name, padding.left, 12);
-
-  // Draw signal description
-  ctx.font = '11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-  ctx.fillStyle = '#586069';
-  ctx.fillText(signalConfig.description, padding.left, 30);
+  ctx.fillText(signalConfig.name, padding.left, 10);
 
   // Draw Y-axis labels
   ctx.fillStyle = '#24292E';
   ctx.font = '11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
   ctx.textAlign = 'right';
   ctx.textBaseline = 'middle';
+  const numHGrid = 5; // For Y-axis labels only (no horizontal grid lines drawn)
   for (let i = 0; i <= numHGrid; i++) {
     const v = vMax - (vRange * i) / numHGrid;
     const y = padding.top + (plotHeight * i) / numHGrid;
@@ -417,18 +393,21 @@ export function renderTimeSeries(canvas, data) {
   ctx.fillStyle = signalConfig.color + '20'; // 12.5% opacity
   ctx.fill();
 
-  // Draw the line
+  // Draw the line with smooth curves
   ctx.beginPath();
   ctx.strokeStyle = signalConfig.color;
-  ctx.lineWidth = 2.5;
+  ctx.lineWidth = 3; // Thicker line
   ctx.lineJoin = 'round';
   ctx.lineCap = 'round';
 
-  // Draw with downsampling - first point at left edge
+  // Collect points for drawing
+  const points = [];
+
+  // First point at left edge
   if (windowData.length > 0) {
     const firstP = windowData[0];
     const firstY = padding.top + plotHeight - ((firstP.v - vMin) / vRange) * plotHeight;
-    ctx.moveTo(padding.left, firstY);
+    points.push({ x: padding.left, y: firstY });
   }
 
   for (let i = step; i < windowData.length; i += step) {
@@ -436,26 +415,56 @@ export function renderTimeSeries(canvas, data) {
     const timeProgress = (p.t - windowData[0].t) / (windowData[windowData.length - 1].t - windowData[0].t || 1);
     const x = padding.left + timeProgress * plotWidth;
     const y = padding.top + plotHeight - ((p.v - vMin) / vRange) * plotHeight;
-    ctx.lineTo(x, y);
+    points.push({ x, y });
   }
 
-  // Always include last point at right edge
+  // Last point at right edge
   if (windowData.length > 0) {
     const lastP = windowData[windowData.length - 1];
     const lastY = padding.top + plotHeight - ((lastP.v - vMin) / vRange) * plotHeight;
-    ctx.lineTo(padding.left + plotWidth, lastY);
+    points.push({ x: padding.left + plotWidth, y: lastY });
+  }
+
+  // Draw line through points
+  if (points.length > 0) {
+    ctx.moveTo(points[0].x, points[0].y);
+    for (let i = 1; i < points.length; i++) {
+      ctx.lineTo(points[i].x, points[i].y);
+    }
   }
   ctx.stroke();
 
-  // Draw reference line (steady state or middle value)
+  // Draw circle markers at key points (every 10th point or so)
+  const markerStep = Math.max(1, Math.floor(points.length / 8)); // ~8 markers max
+  ctx.fillStyle = signalConfig.color;
+  ctx.strokeStyle = '#FFFFFF';
+  ctx.lineWidth = 2;
+
+  for (let i = 0; i < points.length; i += markerStep) {
+    const pt = points[i];
+    ctx.beginPath();
+    ctx.arc(pt.x, pt.y, 5, 0, 2 * Math.PI);
+    ctx.fill();
+    ctx.stroke();
+  }
+
+  // Always draw marker at last point
+  if (points.length > 0) {
+    const lastPt = points[points.length - 1];
+    ctx.beginPath();
+    ctx.arc(lastPt.x, lastPt.y, 6, 0, 2 * Math.PI);
+    ctx.fill();
+    ctx.stroke();
+  }
+
+  // Draw reference line (steady state) - subtle dashed line
   const refValue = (vMin + vMax) / 2;
   const refY = padding.top + plotHeight - ((refValue - vMin) / vRange) * plotHeight;
-  ctx.strokeStyle = '#D73A4940'; // Red with 25% opacity
+  ctx.strokeStyle = '#E1E4E8';
   ctx.lineWidth = 1;
 
-  // Check if setLineDash exists (not available in all test harnesses)
   if (ctx.setLineDash) {
-    ctx.setLineDash([5, 5]);
+    ctx.setLineDash([4, 4]);
   }
 
   ctx.beginPath();
@@ -467,32 +476,22 @@ export function renderTimeSeries(canvas, data) {
     ctx.setLineDash([]);
   }
 
-  // Draw current value indicator (dot with glow at the end)
+  // Draw current value label with clean styling
   if (windowData.length > 0) {
     const lastPoint = windowData[windowData.length - 1];
-    const x = padding.left + ((lastPoint.t - windowMin) / tRange) * plotWidth;
+    const timeProgress = (lastPoint.t - windowData[0].t) / (windowData[windowData.length - 1].t - windowData[0].t || 1);
+    const x = padding.left + timeProgress * plotWidth;
     const y = padding.top + plotHeight - ((lastPoint.v - vMin) / vRange) * plotHeight;
 
-    // Glow effect (larger circle)
-    ctx.beginPath();
-    ctx.arc(x, y, 8, 0, 2 * Math.PI);
-    ctx.fillStyle = signalConfig.color + '30'; // 19% opacity
-    ctx.fill();
-
-    // Inner dot
-    ctx.beginPath();
-    ctx.arc(x, y, 4, 0, 2 * Math.PI);
-    ctx.fillStyle = signalConfig.color;
-    ctx.fill();
-
-    // Draw current value label
+    // Current value label (clean, no glow)
     ctx.fillStyle = '#24292E';
-    ctx.font = 'bold 12px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    ctx.font = 'bold 11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
-    const valueText = lastPoint.v.toFixed(4) + ' ' + signalConfig.unit;
-    const labelX = Math.min(x + 12, padding.left + plotWidth - 60);
-    ctx.fillText(valueText, labelX, y);
+    const valueText = lastPoint.v.toFixed(3) + ' ' + signalConfig.unit;
+    const labelX = Math.min(x + 15, padding.left + plotWidth - 70);
+    const labelY = y < 50 ? y + 15 : y - 15; // Avoid top edge
+    ctx.fillText(valueText, labelX, labelY);
   }
 
   // Setup cursor tracking if not already done (only once per canvas)
