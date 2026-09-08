@@ -47,11 +47,14 @@ function initializeApp() {
   state.deltaCC = result.deltaCC;
   state.deltaMax = result.deltaMax;
 
-  // Add initial data point to history for timeSeries
-  history.delta.push({ t: 0, v: state.delta });
-  history.omega.push({ t: 0, v: state.omega });
-  history.Pe.push({ t: 0, v: state.Pe });
-  history.Pm.push({ t: 0, v: state.Pm });
+  // Add initial data points to history for timeSeries
+  // Need at least 2 points for line rendering
+  for (let i = 0; i < 3; i++) {
+    history.delta.push({ t: i * 0.01, v: state.delta });
+    history.omega.push({ t: i * 0.01, v: state.omega });
+    history.Pe.push({ t: i * 0.01, v: state.Pe });
+    history.Pm.push({ t: i * 0.01, v: state.Pm });
+  }
 
   // Setup control panels
   initControls();

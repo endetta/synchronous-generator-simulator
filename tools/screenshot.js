@@ -8,9 +8,13 @@
 //   node tools/screenshot.js --check             -- regression check
 //   node tools/screenshot.js --save <dir>        -- save ke directory
 
-const puppeteer = require('puppeteer');
-const path = require('path');
-const fs = require('fs');
+import puppeteer from 'puppeteer';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Views: phasor, pdelta, timeseries, controls, status
 const VIEWS = ['phasor', 'pdelta', 'timeseries', 'controls', 'status', 'demo'];
