@@ -294,13 +294,14 @@ body {
 .accordion-content {
   max-height: 0;
   overflow: hidden;
-  transition: max-height 0.3s ease;
-  padding: var(--space-3) var(--space-4);
+  transition: max-height 0.3s ease, padding 0.3s ease;
+  padding: 0 var(--space-4);
   background: var(--bg-primary);
 }
 
 .accordion-section[data-expanded] .accordion-content {
   max-height: 500px;
+  padding: var(--space-4);
 }
 
 .accordion-content .control-group {
