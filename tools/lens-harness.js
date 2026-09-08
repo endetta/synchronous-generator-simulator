@@ -60,9 +60,13 @@ export function createCanvasElement(attrs = {}) {
     beginPath: () => {},
     moveTo: () => {},
     lineTo: () => {},
+    closePath: () => {},
     stroke: () => {},
+    fill: () => {},
+    arc: () => {},
     setTransform: () => {},
     drawImage: () => {},
+    createLinearGradient: () => ({ addColorStop: () => {} }),
   });
   return canvas;
 }

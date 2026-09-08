@@ -4,6 +4,7 @@
 // and the torque angle δ between them with smooth rotation animation.
 
 // Animation state for smooth phasor rotation
+let lastFrameTime = 0;
 let animationTime = 0;
 
 // Render the phasor diagram into the provided SVG element.
@@ -27,17 +28,18 @@ export function renderPhasor(svg, state, params) {
   const cy = 0;
   const scale = 100; // Use viewBox units directly
 
-  // Update animation time for rotating reference frame
-  // When generator is running, the reference frame rotates at synchronous speed
-  // and delta oscillates based on swing equation
+  // Smooth animation using requestAnimationFrame timestamp
+  const currentTime = performance.now();
   if (running) {
-    animationTime += 0.016; // ~60fps animation
+    const deltaTime = lastFrameTime > 0 ? (currentTime - lastFrameTime) / 1000 : 0.016;
+    animationTime += deltaTime * 2 * Math.PI * 0.5; // 0.5 Hz rotation, smooth increment
   }
+  lastFrameTime = currentTime;
 
   // Reference frame rotation angle (simulates synchronous rotation)
-  const refAngle = running ? animationTime * 2 * Math.PI * 0.5 : 0; // 0.5 Hz rotation for visibility
+  const refAngle = running ? animationTime : 0;
 
-  console.log('renderPhasor:', { cx, cy, delta: delta * 180 / Math.PI, scale, running });
+  console.log('renderPhasor:', { cx, cy, delta: delta * 180 / Math.PI, scale, running, refAngle: refAngle * 180 / Math.PI });
 
   // Clear SVG
   svg.innerHTML = '';
