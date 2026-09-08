@@ -2,6 +2,7 @@
  * tooltipManager.js - Manages cursor tooltip for time series
  *
  * Subscribes to cursor sync events and updates tooltip display
+ * OPTIMIZED: Cache DOM elements, use textContent instead of innerHTML, rAF throttle
  */
 
 // Signal metadata (match with timeSeries.js)
@@ -14,26 +15,88 @@ const SIGNALS = {
 
 let currentSignal = 'delta';
 let tooltipElement = null;
+let containerElement = null;
+
+// Cached DOM elements for tooltip content (avoid innerHTML)
+let signalNameEl = null;
+let timeValueEl = null;
+let dataValueEl = null;
+
+// rAF throttling
+let tooltipRafId = null;
+let pendingCursorState = null;
+
+// Cached layout (invalidate on resize)
+let cachedContainerRect = null;
 
 /**
  * Initialize tooltip manager
  */
 export function initTooltipManager() {
   tooltipElement = document.getElementById('cursor-tooltip');
+  containerElement = document.getElementById('timeseries-container');
+
   if (!tooltipElement) {
     console.warn('tooltipManager: cursor-tooltip element not found');
     return;
   }
 
+  // Create cached DOM structure once
+  buildTooltipStructure();
+
   // Listen for cursor sync events from timeSeries.js
   window.addEventListener('cursor-sync', (e) => {
-    updateTooltip(e.detail);
+    // Throttle with rAF - skip if already pending
+    if (tooltipRafId) {
+      pendingCursorState = e.detail;
+      return;
+    }
+
+    tooltipRafId = requestAnimationFrame(() => {
+      tooltipRafId = null;
+      const state = pendingCursorState || e.detail;
+      pendingCursorState = null;
+      updateTooltip(state);
+    });
   });
 
   // Listen for signal changes
   window.addEventListener('signal-change', (e) => {
     currentSignal = e.detail.signal;
+    // Update signal name immediately
+    if (signalNameEl && SIGNALS[currentSignal]) {
+      signalNameEl.textContent = SIGNALS[currentSignal].name;
+    }
   });
+
+  // Invalidate container rect cache on resize
+  window.addEventListener('resize', () => {
+    cachedContainerRect = null;
+  });
+}
+
+/**
+ * Build tooltip DOM structure once (avoid innerHTML every frame)
+ */
+function buildTooltipStructure() {
+  tooltipElement.innerHTML = `
+    <div id="tt-signal-name" style="color: #6A737D; margin-bottom: 4px; font-size: 10px;"></div>
+    <div style="display: flex; gap: 16px;">
+      <div>
+        <span style="color: #6A737D;">t = </span>
+        <span id="tt-time-value" style="color: #24292E; font-weight: 600;"></span>
+      </div>
+      <div>
+        <span style="color: #6A737D;">value = </span>
+        <span id="tt-data-value" style="color: #D73A49; font-weight: 600;"></span>
+      </div>
+    </div>
+  `;
+
+  // Cache references to dynamic elements
+  signalNameEl = document.getElementById('tt-signal-name');
+  timeValueEl = document.getElementById('tt-time-value');
+  dataValueEl = document.getElementById('tt-data-value');
 }
 
 /**
@@ -51,36 +114,30 @@ function updateTooltip(cursorState) {
   const signal = SIGNALS[currentSignal];
   if (!signal) return;
 
-  // Update tooltip content
-  tooltipElement.innerHTML = `
-    <div style="color: #6A737D; margin-bottom: 4px; font-size: 10px;">${signal.name}</div>
-    <div style="display: flex; gap: 16px;">
-      <div>
-        <span style="color: #6A737D;">t = </span>
-        <span style="color: #24292E; font-weight: 600;">${cursorState.time.toFixed(3)}s</span>
-      </div>
-      <div>
-        <span style="color: #6A737D;">value = </span>
-        <span style="color: #D73A49; font-weight: 600;">${cursorState.value.toFixed(4)} ${signal.unit}</span>
-      </div>
-    </div>
-  `;
+  // Update text content only (no innerHTML)
+  if (signalNameEl) signalNameEl.textContent = signal.name;
+  if (timeValueEl) timeValueEl.textContent = `${cursorState.time.toFixed(3)}s`;
+  if (dataValueEl) dataValueEl.textContent = `${cursorState.value.toFixed(4)} ${signal.unit}`;
 
   tooltipElement.style.opacity = '1';
 
-  // Position tooltip near cursor (relative to timeseries-container)
-  const container = document.getElementById('timeseries-container');
-  if (!container) return;
+  // Get container rect (cached)
+  if (!cachedContainerRect && containerElement) {
+    cachedContainerRect = containerElement.getBoundingClientRect();
+  }
 
-  const rect = container.getBoundingClientRect();
-  const tooltipRect = tooltipElement.getBoundingClientRect();
+  if (!cachedContainerRect) return;
+
+  // Use fixed tooltip size instead of getBoundingClientRect (avoid reflow)
+  const tooltipWidth = 200;  // Approximate width
+  const tooltipHeight = 50;  // Approximate height
 
   let left = cursorState.x + 15;
-  let top = cursorState.y - tooltipRect.height - 10;
+  let top = cursorState.y - tooltipHeight - 10;
 
   // Keep within bounds
-  if (left + tooltipRect.width > rect.width) {
-    left = cursorState.x - tooltipRect.width - 15;
+  if (left + tooltipWidth > cachedContainerRect.width) {
+    left = cursorState.x - tooltipWidth - 15;
   }
   if (top < 0) {
     top = cursorState.y + 20;
