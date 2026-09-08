@@ -154,12 +154,12 @@ function showTooltip(element, content) {
   if (!tooltipElement) return;
 
   // Clear any existing timeout
-  if (currentTimeout) {
-    clearTimeout(currentTimeout);
+  if (currentTimeout && typeof window !== 'undefined' && window.clearTimeout) {
+    window.clearTimeout(currentTimeout);
   }
 
   // Small delay before showing
-  currentTimeout = setTimeout(() => {
+  currentTimeout = window.setTimeout(() => {
     // Format content with line breaks
     const formattedContent = content.content.replace(/\n/g, '<br>');
 
@@ -194,8 +194,8 @@ function showTooltip(element, content) {
  * Hide tooltip
  */
 function hideTooltip() {
-  if (currentTimeout) {
-    clearTimeout(currentTimeout);
+  if (currentTimeout && typeof window !== 'undefined' && window.clearTimeout) {
+    window.clearTimeout(currentTimeout);
     currentTimeout = null;
   }
 

@@ -72,8 +72,8 @@ function setupCursorTracking(canvas, data, timeRange, valueRange) {
 
 // Notify cursor state change (trigger tooltip update)
 function notifyCursorChange() {
-  if (typeof window !== 'undefined') {
-    window.dispatchEvent(new CustomEvent('cursor-sync', {
+  if (typeof window !== 'undefined' && window.CustomEvent) {
+    window.dispatchEvent(new window.CustomEvent('cursor-sync', {
       detail: { ...cursorState }
     }));
   }

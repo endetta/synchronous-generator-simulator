@@ -50,7 +50,7 @@ let highlightElement = null;
 export function initTutorialOverlay() {
   // Check if tutorial has been seen
   if (typeof window !== 'undefined' && window.localStorage) {
-    const seen = localStorage.getItem(STORAGE_KEY);
+    const seen = window.localStorage.getItem(STORAGE_KEY);
     if (seen === 'true') {
       return; // Already seen, don't show
     }
@@ -251,7 +251,7 @@ function closeTutorial() {
  */
 function markAsSeen() {
   if (typeof window !== 'undefined' && window.localStorage) {
-    localStorage.setItem(STORAGE_KEY, 'true');
+    window.localStorage.setItem(STORAGE_KEY, 'true');
   }
 }
 
@@ -260,6 +260,6 @@ function markAsSeen() {
  */
 export function resetTutorial() {
   if (typeof window !== 'undefined' && window.localStorage) {
-    localStorage.removeItem(STORAGE_KEY);
+    window.localStorage.removeItem(STORAGE_KEY);
   }
 }
