@@ -18,10 +18,10 @@ export function makeTgov1State() {
 }
 
 // Compute TGOV1 output for one timestep.
-// Parameters: Pref (set-point), Pm (mechanical power), R (droop)
+// Parameters: Pref (set-point), Pm (mechanical power), R (droop), dt
 // Returns: new valve position y (used as Pm for next swing step)
-export function tgov1Step(state, Pref, Pm, dt) {
-  const { R, T1, T2 } = CONSTANTS;
+export function tgov1Step(state, Pref, Pm, R, dt) {
+  const { T1, T2 } = CONSTANTS;
   const { y, x1, x2 } = state;
 
   // Error signal

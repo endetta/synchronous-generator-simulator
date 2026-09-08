@@ -1,8 +1,8 @@
 // src/main.js
 // Main orchestrator: imports physics, renderers, UI, and starts the simulation loop.
 
-import { CONSTANTS } from './constants.js';
 import { state, onChange, commit } from './state.js';
+import { CONSTANTS } from './constants.js';
 import { rk4Step, computePe } from './physics/swing.js';
 import { makeTgov1State, tgov1Step } from './physics/tgov1.js';
 import { computeCriticalClearingAngle, checkStability } from './physics/eac.js';
@@ -44,12 +44,14 @@ function initializeApp() {
   applyScenario(state, 'steadyState');
 
   // Compute initial δCC for current Pm
-  state.deltaCC = computeCriticalClearingAngle(
+  const result = computeCriticalClearingAngle(
     state.delta,
     state.Pm,
     CONSTANTS.Pmax,
     CONSTANTS.Pmax * 0.5 // Reduced Pmax during fault
   );
+  state.deltaCC = result.deltaCC;
+  state.deltaMax = result.deltaMax;
 
   // Subscribe to state changes for re-rendering
   onChange(() => {
@@ -82,8 +84,8 @@ function simulate(dt) {
     currentPm = load;
   }
 
-  // Governor step
-  governorState = tgov1Step(governorState, currentPref, state.Pm, dt);
+  // Governor step (pass droop from state instead of CONSTANTS)
+  governorState = tgov1Step(governorState, currentPref, state.Pm, state.droop, dt);
 
   // Use Pm from governor (mechanical power)
   state.Pm = governorState.y;

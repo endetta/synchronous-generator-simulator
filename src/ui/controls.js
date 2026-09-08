@@ -2,15 +2,7 @@
 // UI control handlers for sliders, dropdowns, and buttons.
 // Connects DOM events to state mutations.
 
-import { state, setDelta, setOmega, setPe, setPm, setPref, setFaultOn, setRunning, setRLREnabled } from '../state.js';
-import { CONSTANTS } from '../constants.js';
-
-// Map slider elements to their value display spans
-const sliderDisplayMap = {
-  pmSlider: 'pmValue',
-  droopSlider: 'droopValue',
-  deltaSlider: 'deltaValue',
-};
+import { state, setDelta, setPref, setDroop, setFaultOn, setRunning } from '../state.js';
 
 // Initialize all UI controls and attach event listeners.
 export function initControls() {
@@ -29,7 +21,7 @@ export function initControls() {
 
   // Initialize display values
   els.pmValue.textContent = `${state.Pref.toFixed(2)} pu`;
-  els.droopValue.textContent = `${(CONSTANTS.R * 100).toFixed(0)}%`;
+  els.droopValue.textContent = `${(state.droop * 100).toFixed(0)}%`;
   els.deltaValue.textContent = `${(state.delta * 180 / Math.PI).toFixed(0)}°`;
 
   // PM slider handler
@@ -42,8 +34,7 @@ export function initControls() {
   // Droop slider handler
   els.droopSlider.addEventListener('input', (e) => {
     const droop = parseFloat(e.target.value);
-    // Update CONSTANTS.R dynamically (not ideal but works for demo)
-    CONSTANTS.R = droop;
+    setDroop(droop); // Update state instead of mutating CONSTANTS
     els.droopValue.textContent = `${(droop * 100).toFixed(0)}%`;
   });
 
@@ -88,11 +79,12 @@ export function initControls() {
   els.btnReset.addEventListener('click', () => {
     setRunning(false);
     // Reset state to initial values
-    state.delta = CONSTANTS.DELTA_INIT;
-    state.omega = 1.0;
+    state.delta = 0.524; // ~30° default
+    state.omega = 0.0;   // sync speed in relative convention
     state.Pe = 0.0;
-    state.Pm = CONSTANTS.Pmax * Math.sin(CONSTANTS.DELTA_INIT);
+    state.Pm = 0.0;
     state.Pref = 1.0;
+    state.droop = 0.05;  // 5% default droop
     state.faultOn = false;
     state.faultStart = 0;
     state.faultClear = 0;
@@ -135,8 +127,8 @@ export function syncControls() {
 
   els.pmSlider.value = state.Pref.toFixed(2);
   els.pmValue.textContent = `${state.Pref.toFixed(2)} pu`;
-  els.droopSlider.value = CONSTANTS.R.toFixed(2);
-  els.droopValue.textContent = `${(CONSTANTS.R * 100).toFixed(0)}%`;
+  els.droopSlider.value = state.droop.toFixed(2);
+  els.droopValue.textContent = `${(state.droop * 100).toFixed(0)}%`;
   els.deltaSlider.value = ((state.delta * 180 / Math.PI) % 180).toFixed(0);
   els.deltaValue.textContent = `${((state.delta * 180 / Math.PI) % 180).toFixed(0)}°`;
 }

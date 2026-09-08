@@ -1,0 +1,53 @@
+{
+  "name": "level-2---synchronous-generator-simulator",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "dev": "vite",
+    "preview": "vite preview",
+    "build": "vite build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:ui": "vitest --ui",
+    "lint": "eslint src tools --ext .js",
+    "lint:fix": "eslint src tools --ext .js --fix",
+    "format": "prettier --write \"src/**/*.js\" \"tools/**/*.js\"",
+    "format:check": "prettier --check \"src/**/*.js\" \"tools/**/*.js\"",
+    "precommit": "lint-staged",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.js": [
+      "eslint --fix",
+      "prettier --write"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/endetta/synchronous-generator-simulator.git"
+  },
+  "keywords": [],
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/endetta/synchronous-generator-simulator/issues"
+  },
+  "homepage": "https://github.com/endetta/synchronous-generator-simulator#readme",
+  "dependencies": {
+    "puppeteer": "^25.10.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "c8": "^12.0.0",
+    "eslint": "^10.10.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.5.0",
+    "prettier": "^3.9.6",
+    "vite": "^8.2.2",
+    "vitest": "^5.0.0"
+  }
+}

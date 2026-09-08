@@ -15,13 +15,13 @@ export function ode(state, params) {
   // Pe = Pmax·sin(δ)
   const Pe = Pmax * Math.sin(delta);
 
-  // dδ/dt = ω (angular velocity relative to sync)
+  // dδ/dt = ω (angular velocity relative to 1.0 pu sync, consistent convention)
   const dDelta = omega;
 
-  // dω/dt = (Pm - Pe - D·(ω - 1)) / M
-  // Note: ω = 1 at synchronous speed, so (ω - 1) is deviation
+  // dω/dt = (Pm - Pe - D·ω) / M
+  // Uses relative convention: ω deviation means ω=1.0 at synchronous speed
   const M = 2 * CONSTANTS.H / (2 * Math.PI * CONSTANTS.F0);
-  const dOmega = (Pm - Pe - D * (omega - 1.0)) / M;
+  const dOmega = (Pm - Pe - D * omega) / M;
 
   return [dDelta, dOmega];
 }

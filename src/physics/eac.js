@@ -11,7 +11,7 @@ import { CONSTANTS } from '../constants.js';
 //   - Pm: mechanical power (pu)
 //   - Pmax_normal: Pmax before fault (pu)
 //   - Pmax_post: Pmax during/after fault (pu)
-// Returns: δcc in radians
+// Returns: { deltaCC: number, deltaMax: number }
 export function computeCriticalClearingAngle(delta0, Pm, Pmax_normal, Pmax_post) {
   // Find δ_max (unstable equilibrium point) for post-fault condition
   // Pe = Pmax_post * sin(δ) = Pm
@@ -54,11 +54,11 @@ export function computeCriticalClearingAngle(delta0, Pm, Pmax_normal, Pmax_post)
     if (Math.abs(diff) < 1e-6) break;
 
     // Newton-like correction
-    δ_cc += diff / (Pm + Pmax_post * Math.sin(δ_cc) - Pm) * 0.1;
-    δ_cc = Math.max(delta0, Math.min(δ_max - 0.01, δ_cc));
+    δ_cc += diff / (Pmax_post * Math.sin(δ_cc)) * 0.1;
+    δ_cc = Math.max(delta0, Math.min(delta_max - 0.01, δ_cc));
   }
 
-  return Math.min(δ_cc, Math.PI / 2);
+  return { deltaCC: Math.min(δ_cc, Math.PI / 2), deltaMax: delta_max };
 }
 
 // Check stability using EAC

@@ -1,0 +1,18 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+echo "🧪 Menjalankan pre-commit checks..."
+
+# Jalankan test physics
+echo "📝 Physics tests..."
+node tools/physics.test.js || exit 1
+
+# Jalankan test renderers
+echo "🎨 Renderer tests..."
+node tools/renderers.test.js || exit 1
+
+# Jalankan linter
+echo "✨ Linting..."
+npm run lint || exit 1
+
+echo "✅ Pre-commit checks selesai!"

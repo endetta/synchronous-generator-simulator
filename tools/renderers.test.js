@@ -8,6 +8,9 @@ import { renderPDelta } from '../src/renderers/pdelta.js';
 import { renderTimeSeries, getLayout } from '../src/renderers/timeSeries.js';
 import { renderRLRChart, computeRLRStats } from '../src/renderers/rlrChart.js';
 
+// Mock window object for Node environment
+global.window = { devicePixelRatio: 2 };
+
 let pass = 0;
 let fail = 0;
 
@@ -39,6 +42,26 @@ const stubElements = {
     setTransform() {},
   }),
 };
+
+// Default canvas context with all required methods
+function makeCtx() {
+  return {
+    fillRect() {},
+    strokeRect() {},
+    fillText() {},
+    strokeText() {},
+    beginPath() {},
+    moveTo() {},
+    lineTo() {},
+    stroke() {},
+    fill() {},
+    setTransform() {},
+    save() {},
+    restore() {},
+    createLinearGradient() { return { addColorStop() {} }; },
+    measureText() { return { width: 50 }; },
+  };
+}
 
 // ──────────────────────────────────────────────────────────
 // PHASOR RENDERER TESTS
@@ -133,10 +156,7 @@ test('getLayout: respects DPR', () => {
 });
 
 test('renderTimeSeries: handles empty data gracefully', () => {
-  const canvas = stubElements.canvas(
-    { fillRect() {}, fillText() {}, beginPath() {}, moveTo() {}, lineTo() {}, stroke() {} },
-    600, 250
-  );
+  const canvas = stubElements.canvas(makeCtx(), 600, 250);
   const emptyData = {
     delta: [], omega: [], Pe: [], Pm: [],
   };
@@ -147,18 +167,13 @@ test('renderTimeSeries: handles empty data gracefully', () => {
 
 test('renderTimeSeries: plots data points', () => {
   const draws = [];
-  const canvas = stubElements.canvas(
-    {
-      fillRect() {},
-      fillText() {},
-      beginPath() { draws.push('beginPath'); },
-      moveTo(x, y) { draws.push(`moveTo(${x.toFixed(1)},${y.toFixed(1)})`); },
-      lineTo(x, y) { draws.push(`lineTo`); },
-      stroke() { draws.push('stroke'); },
-      setTransform() {},
-    },
-    600, 250
-  );
+  const ctx = makeCtx();
+  ctx.beginPath = () => draws.push('beginPath');
+  ctx.moveTo = (x, y) => draws.push(`moveTo(${x.toFixed(1)},${y.toFixed(1)})`);
+  ctx.lineTo = () => draws.push('lineTo');
+  ctx.stroke = () => draws.push('stroke');
+
+  const canvas = stubElements.canvas(ctx, 600, 250);
   const data = {
     delta: [{ t: 0, v: 0.5 }, { t: 0.1, v: 0.6 }, { t: 0.2, v: 0.7 }],
     omega: [{ t: 0, v: 1.0 }, { t: 0.1, v: 1.02 }, { t: 0.2, v: 1.03 }],

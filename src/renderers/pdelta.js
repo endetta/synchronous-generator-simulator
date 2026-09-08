@@ -58,14 +58,33 @@ export function renderPDelta(svg, state, params) {
   svg.innerHTML += `<circle cx="${pointX.toFixed(2)}" cy="${pointY.toFixed(2)}" r="4" fill="red"/>`;
 
   // Draw EAC shading if deltaCC is provided and > 0
-  if (deltaCC > 0 && deltaCC < deltaMax) {
+  if (deltaCC > 0 && deltaCC < deltaMax && Pm !== undefined) {
+    const pmY = PADDING.top + plotH * (1 - Pm / (Pmax * 1.1));
     const ccX = PADDING.left + deltaCC * scaleX;
-    // A1 shading: from 0 to deltaCC, between Pm and curve
+    const ccY = PADDING.top + plotH * (1 - Pmax * Math.sin(deltaCC) / (Pmax * 1.1));
+
+    // A1 shading: accelerating area (delta0 to deltaCC, between Pm and curve)
     const a1Path = `M${PADDING.left},${pmY} ` +
       `L${ccX.toFixed(2)},${pmY} ` +
-      `L${ccX.toFixed(2)},${(PADDING.top + plotH * (1 - Pmax * Math.sin(deltaCC) / (Pmax * 1.1))).toFixed(2)} ` +
+      `L${ccX.toFixed(2)},${ccY.toFixed(2)} ` +
       `Z`;
-    svg.innerHTML += `<path d="${a1Path}" fill="rgba(255,100,0,0.3)"/>`;
+    svg.innerHTML += `<path d="${a1Path}" fill="rgba(255,100,0,0.3)" stroke="orange" stroke-width="1"/>`;
+
+    // A2 shading: decelerating area (deltaCC to deltaMax, between curve and Pm)
+    // Build path from deltaCC to deltaMax along the curve
+    let a2Path = `M${ccX.toFixed(2)},${ccY.toFixed(2)} `;
+    const N_a2 = 50;
+    for (let i = 0; i <= N_a2; i++) {
+      const d = deltaCC + ((deltaMax - deltaCC) * i) / N_a2;
+      const p = Pmax * Math.sin(d);
+      const svg_x = PADDING.left + d * scaleX;
+      const svg_y = PADDING.top + plotH * (1 - p / (Pmax * 1.1));
+      a2Path += `L${svg_x.toFixed(2)},${svg_y.toFixed(2)} `;
+    }
+    // Close back along Pm line
+    const maxX = PADDING.left + deltaMax * scaleX;
+    a2Path += `L${maxX.toFixed(2)},${pmY} L${ccX.toFixed(2)},${pmY} Z`;
+    svg.innerHTML += `<path d="${a2Path}" fill="rgba(0,200,100,0.2)" stroke="green" stroke-width="1"/>`;
   }
 
   // Axis labels
