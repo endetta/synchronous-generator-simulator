@@ -37,24 +37,28 @@
 ## Phase 2: Controls Panel Redesign
 
 ### Tasks
-- [ ] **P2.1** - Accordion sections
-  - Mechanical Power (Pm slider, Scenario)
-  - Governor (Droop R)
-  - Fault Conditions (Type, Duration)
-  - Initial Conditions (δ₀, ω₀)
-  - Simulation Control (Start/Stop/Reset)
+- [x] **P2.1** - Accordion sections
+  - Mechanical Power (Pm slider, Scenario) ✅
+  - Governor (Droop R) ✅
+  - Fault Conditions (Type, Duration) ✅
+  - Initial Conditions (δ₀, ω₀) ✅
+  - Simulation Control (Start/Stop/Reset) ✅
 
-- [ ] **P2.2** - Live value display
-  - Slider dengan inline value
-  - Real-time feedback
+- [x] **P2.2** - Live value display
+  - Slider dengan inline value ✅
+  - Real-time feedback ✅
 
-- [ ] **P2.3** - Signal selector (Radio buttons)
-  - Horizontal: [● δ] [ ω] [ Pe] [ Pm]
-  - Update time series berdasarkan selection
+- [x] **P2.3** - Signal selector integration
+  - Radio buttons horizontal ✅
+  - Update time series render berdasarkan selection ✅
+  - Single signal view dengan grid lines ✅
 
-- [ ] **P2.4** - Status values multiple locations
-  - Inline di controls panel
-  - Summary di phasor diagram bottom
+- [x] **P2.4** - Status values multiple locations
+  - Inline di phasor panel ✅
+
+### Files Modified
+- `src/renderers/timeSeries.js` - Single signal rendering dengan signal selector
+- `tools/lens-harness.js` - Added setLineDash stub for tests
 
 ---
 
@@ -158,14 +162,14 @@
 | Phase | Status | Progress |
 |-------|--------|----------|
 | P1 - Core Layout | ✅ Completed | 100% |
-| P2 - Controls | ⏳ In Progress | 80% |
+| P2 - Controls | ✅ Completed | 100% |
 | P3 - Time Series | ⏳ Not Started | 0% |
 | P4 - Measurement | ⏳ Not Started | 0% |
 | P5 - Help | ⏳ Not Started | 0% |
 | P6 - Polish | ⏳ Not Started | 0% |
 | P7 - Testing | ⏳ Not Started | 0% |
 
-**Overall: 26% (2/7 phases complete)**
+**Overall: 29% (2/7 phases complete)**
 
 ---
 

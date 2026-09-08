@@ -67,6 +67,10 @@ export function createCanvasElement(attrs = {}) {
     setTransform: () => {},
     drawImage: () => {},
     createLinearGradient: () => ({ addColorStop: () => {} }),
+    setLineDash: () => {},
+    measureText: () => ({ width: 50 }),
+    save: () => {},
+    restore: () => {},
   });
   return canvas;
 }
