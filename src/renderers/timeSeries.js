@@ -45,7 +45,7 @@ export function renderTimeSeries(canvas, data) {
 
   const stacks = [
     { name: 'δ (rad)', data: data.delta, color: 'blue', range: [0, Math.PI] },
-    { name: 'ω (pu)', data: data.omega, color: 'red', range: [0.9, 1.1] },
+    { name: 'ω (pu)', data: data.omega, color: 'red', range: [0.95, 1.05] },
     { name: 'Pe (pu)', data: data.Pe, color: 'green', range: [0, 2.0] },
     { name: 'Pm (pu)', data: data.Pm, color: 'orange', range: [0, 2.0] },
   ];

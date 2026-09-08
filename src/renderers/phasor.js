@@ -16,32 +16,30 @@ export function renderPhasor(svg, state, params) {
   const { delta } = state;
   const { V = 1.0, Ea = 1.2, X = 0.3 } = params;
 
-  // Use viewBox dimensions as fallback (SVG viewBox="-150 -150 300 300")
-  const width = svg.clientWidth || svg.viewBox?.baseVal?.width || 300;
-  const height = svg.clientHeight || svg.viewBox?.baseVal?.height || 300;
-  const cx = width / 2;
-  const cy = height / 2;
-  const scale = Math.min(width, height) / 2.5;
+  // SVG viewBox="-150 -150 300 300" means:
+  // - Center is at (0, 0) in viewBox coordinates
+  // - X ranges from -150 to 150
+  // - Y ranges from -150 to 150 (Y-axis points DOWN in SVG)
+  const cx = 0;
+  const cy = 0;
+  const scale = 100; // Use viewBox units directly
 
-  console.log('renderPhasor:', { width, height, delta: delta * 180 / Math.PI, scale });
+  console.log('renderPhasor:', { cx, cy, delta: delta * 180 / Math.PI, scale });
 
   // Clear SVG
   svg.innerHTML = '';
 
-  // Define center
-  const center = { x: cx, y: cy };
-
   // Phasor coordinates (Y-axis flipped in SVG)
-  // V is reference (horizontal, angle 0)
+  // V is reference (horizontal, angle 0, pointing right)
   const vEnd = {
-    x: cx + V * scale,
-    y: cy,
+    x: V * scale,
+    y: 0,
   };
 
-  // E' leads V by angle δ
+  // E' leads V by angle δ (counterclockwise in math, clockwise in SVG Y-down)
   const eEnd = {
-    x: cx + Ea * scale * Math.cos(delta),
-    y: cy - Ea * scale * Math.sin(delta),
+    x: Ea * scale * Math.cos(delta),
+    y: -Ea * scale * Math.sin(delta), // negative because SVG Y-axis points down
   };
 
   // Compute I: I = (E' - V) / jX  →  I lags E' by angle (90° - δ) roughly
@@ -49,8 +47,8 @@ export function renderPhasor(svg, state, params) {
   const ix = (Ea * Math.sin(delta)) / X * scale;
   const iy = (Ea * Math.cos(delta) - V) / X * scale;
   const iEnd = {
-    x: cx + ix,
-    y: cy + iy,
+    x: ix,
+    y: iy,
   };
 
   // Draw reference circle (pu scale)
@@ -58,35 +56,39 @@ export function renderPhasor(svg, state, params) {
 
   // Draw V phasor (red)
   svg.innerHTML += `<line x1="${cx}" y1="${cy}" x2="${vEnd.x}" y2="${vEnd.y}" stroke="red" stroke-width="2"/>`;
-  svg.innerHTML += `<text x="${vEnd.x + 5}" y="${vEnd.y - 5}" fill="red" font-size="12">V</text>`;
+  svg.innerHTML += `<text x="${vEnd.x + 10}" y="${vEnd.y + 5}" fill="red" font-size="14">V</text>`;
 
   // Draw E' phasor (blue)
   svg.innerHTML += `<line x1="${cx}" y1="${cy}" x2="${eEnd.x}" y2="${eEnd.y}" stroke="blue" stroke-width="2"/>`;
-  svg.innerHTML += `<text x="${eEnd.x + 5}" y="${eEnd.y - 5}" fill="blue" font-size="12">E'</text>`;
+  svg.innerHTML += `<text x="${eEnd.x + 10}" y="${eEnd.y - 10}" fill="blue" font-size="14">E'</text>`;
 
   // Draw I phasor (green)
   svg.innerHTML += `<line x1="${cx}" y1="${cy}" x2="${iEnd.x}" y2="${iEnd.y}" stroke="green" stroke-width="2"/>`;
-  svg.innerHTML += `<text x="${iEnd.x + 5}" y="${iEnd.y - 5}" fill="green" font-size="12">I</text>`;
+  svg.innerHTML += `<text x="${iEnd.x + 10}" y="${iEnd.y + 5}" fill="green" font-size="14">I</text>`;
 
   // Draw angle arc δ
   const arcRadius = scale * 0.3;
   const startAngle = 0;
   const endAngle = delta;
   const largeArc = delta > Math.PI ? 1 : 0;
-  const x1 = cx + arcRadius * Math.cos(startAngle);
-  const y1 = cy - arcRadius * Math.sin(startAngle);
-  const x2 = cx + arcRadius * Math.cos(endAngle);
-  const y2 = cy - arcRadius * Math.sin(endAngle);
+  const x1 = arcRadius * Math.cos(startAngle);
+  const y1 = -arcRadius * Math.sin(startAngle);
+  const x2 = arcRadius * Math.cos(endAngle);
+  const y2 = -arcRadius * Math.sin(endAngle);
 
   svg.innerHTML += `<path d="M${x1},${y1} A${arcRadius},${arcRadius} 0 ${largeArc} 1 ${x2},${y2}" fill="none" stroke="purple" stroke-width="1"/>`;
-  svg.innerHTML += `<text x="${cx + arcRadius + 5}" y="${cy - arcRadius}" fill="purple" font-size="10">δ</text>`;
+  svg.innerHTML += `<text x="${arcRadius + 10}" y="${-arcRadius}" fill="purple" font-size="12">δ</text>`;
 
   // Draw center dot
-  svg.innerHTML += `<circle cx="${cx}" cy="${cy}" r="2" fill="black"/>`;
+  svg.innerHTML += `<circle cx="${cx}" cy="${cy}" r="3" fill="black"/>`;
+
+  // Draw axes
+  svg.innerHTML += `<line x1="-140" y1="0" x2="140" y2="0" stroke="#ddd" stroke-width="1"/>`;
+  svg.innerHTML += `<line x1="0" y1="-140" x2="0" y2="140" stroke="#ddd" stroke-width="1"/>`;
 
   // Status text
   const deltaDeg = delta * 180 / Math.PI;
-  svg.innerHTML += `<text x="${cx}" y="${cy + scale + 20}" fill="black" font-size="12" text-anchor="middle">δ = ${deltaDeg.toFixed(1)}°</text>`;
+  svg.innerHTML += `<text x="0" y="130" fill="black" font-size="12" text-anchor="middle">δ = ${deltaDeg.toFixed(1)}°</text>`;
 
   return svg.innerHTML;
 }
