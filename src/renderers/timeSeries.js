@@ -389,18 +389,28 @@ export function renderTimeSeries(canvas, data) {
   // Draw filled area under curve
   ctx.beginPath();
   ctx.moveTo(padding.left, padding.top + plotHeight);
-  for (let i = 0; i < windowData.length; i += step) {
+
+  // Start from first visible data point at left edge
+  if (windowData.length > 0) {
+    const firstP = windowData[0];
+    const firstY = padding.top + plotHeight - ((firstP.v - vMin) / vRange) * plotHeight;
+    ctx.lineTo(padding.left, firstY);
+  }
+
+  for (let i = step; i < windowData.length; i += step) {
     const p = windowData[i];
-    const x = padding.left + ((p.t - windowMin) / tRange) * plotWidth;
+    // Map time to canvas position - windowData already filtered to window
+    const timeProgress = (p.t - windowData[0].t) / (windowData[windowData.length - 1].t - windowData[0].t || 1);
+    const x = padding.left + timeProgress * plotWidth;
     const y = padding.top + plotHeight - ((p.v - vMin) / vRange) * plotHeight;
     ctx.lineTo(x, y);
   }
-  // Always include last point
+
+  // Always include last point at right edge
   if (windowData.length > 0) {
     const lastP = windowData[windowData.length - 1];
-    const lastX = padding.left + ((lastP.t - windowMin) / tRange) * plotWidth;
     const lastY = padding.top + plotHeight - ((lastP.v - vMin) / vRange) * plotHeight;
-    ctx.lineTo(lastX, lastY);
+    ctx.lineTo(padding.left + plotWidth, lastY);
   }
   ctx.lineTo(padding.left + plotWidth, padding.top + plotHeight);
   ctx.closePath();
@@ -414,20 +424,26 @@ export function renderTimeSeries(canvas, data) {
   ctx.lineJoin = 'round';
   ctx.lineCap = 'round';
 
-  // Draw with downsampling
-  for (let i = 0; i < windowData.length; i += step) {
-    const p = windowData[i];
-    const x = padding.left + ((p.t - windowMin) / tRange) * plotWidth;
-    const y = padding.top + plotHeight - ((p.v - vMin) / vRange) * plotHeight;
-    if (i === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
+  // Draw with downsampling - first point at left edge
+  if (windowData.length > 0) {
+    const firstP = windowData[0];
+    const firstY = padding.top + plotHeight - ((firstP.v - vMin) / vRange) * plotHeight;
+    ctx.moveTo(padding.left, firstY);
   }
-  // Always include last point
+
+  for (let i = step; i < windowData.length; i += step) {
+    const p = windowData[i];
+    const timeProgress = (p.t - windowData[0].t) / (windowData[windowData.length - 1].t - windowData[0].t || 1);
+    const x = padding.left + timeProgress * plotWidth;
+    const y = padding.top + plotHeight - ((p.v - vMin) / vRange) * plotHeight;
+    ctx.lineTo(x, y);
+  }
+
+  // Always include last point at right edge
   if (windowData.length > 0) {
     const lastP = windowData[windowData.length - 1];
-    const lastX = padding.left + ((lastP.t - windowMin) / tRange) * plotWidth;
     const lastY = padding.top + plotHeight - ((lastP.v - vMin) / vRange) * plotHeight;
-    ctx.lineTo(lastX, lastY);
+    ctx.lineTo(padding.left + plotWidth, lastY);
   }
   ctx.stroke();
 
