@@ -31,16 +31,7 @@ let history = {
 function initializeApp() {
   console.log('Initializing Synchronous Generator Simulator...');
 
-  // Setup control panels
-  initControls();
-  initPanels();
-
-  // Setup tooltip
-  const phasorSvg = document.getElementById('phasor-svg');
-  const tooltip = document.getElementById('tooltip');
-  initTooltip(phasorSvg, tooltip);
-
-  // Apply startup scenario
+  // Apply startup scenario FIRST (before any rendering)
   applyScenario(state, 'steadyState');
 
   // Compute initial δCC for current Pm
@@ -53,6 +44,21 @@ function initializeApp() {
   state.deltaCC = result.deltaCC;
   state.deltaMax = result.deltaMax;
 
+  // Add initial data point to history for timeSeries
+  history.delta.push({ t: 0, v: state.delta });
+  history.omega.push({ t: 0, v: state.omega });
+  history.Pe.push({ t: 0, v: state.Pe });
+  history.Pm.push({ t: 0, v: state.Pm });
+
+  // Setup control panels
+  initControls();
+  initPanels();
+
+  // Setup tooltip
+  const phasorSvg = document.getElementById('phasor-svg');
+  const tooltip = document.getElementById('tooltip');
+  initTooltip(phasorSvg, tooltip);
+
   // Subscribe to state changes for re-rendering
   onChange(() => {
     renderAll();
@@ -62,6 +68,8 @@ function initializeApp() {
   renderAll();
 
   console.log('Initialization complete. Ready to simulate.');
+  console.log('State:', state);
+  console.log('History:', history);
 }
 
 // ──────────────────────────────────────────────────────────

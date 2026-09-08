@@ -8,14 +8,22 @@
 // params: { V, Ea, X } (pu)
 // svg: DOM element (or mock with viewBox attribute)
 export function renderPhasor(svg, state, params) {
+  if (!svg) {
+    console.error('renderPhasor: SVG element not found');
+    return '';
+  }
+
   const { delta } = state;
   const { V = 1.0, Ea = 1.2, X = 0.3 } = params;
 
-  const width = svg.clientWidth || 300;
-  const height = svg.clientHeight || 300;
+  // Use viewBox dimensions as fallback (SVG viewBox="-150 -150 300 300")
+  const width = svg.clientWidth || svg.viewBox?.baseVal?.width || 300;
+  const height = svg.clientHeight || svg.viewBox?.baseVal?.height || 300;
   const cx = width / 2;
   const cy = height / 2;
   const scale = Math.min(width, height) / 2.5;
+
+  console.log('renderPhasor:', { width, height, delta: delta * 180 / Math.PI, scale });
 
   // Clear SVG
   svg.innerHTML = '';

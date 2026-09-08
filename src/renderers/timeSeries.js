@@ -22,9 +22,22 @@ export function getLayout(canvas) {
 // Render time series stack into the canvas.
 // data: { delta: [{t, v}], omega: [{t, v}], Pe: [{t, v}], Pm: [{t, v}] }
 export function renderTimeSeries(canvas, data) {
+  if (!canvas) {
+    console.error('renderTimeSeries: Canvas element not found');
+    return;
+  }
+
   const { dpr, width, height } = getLayout(canvas);
   const ctx = canvas.getContext('2d');
+
+  if (!ctx) {
+    console.error('renderTimeSeries: Could not get 2D context');
+    return;
+  }
+
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  console.log('renderTimeSeries:', { width, height, dpr, points: data.delta.length });
 
   // Clear
   ctx.fillStyle = '#FFFFFF';

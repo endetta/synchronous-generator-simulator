@@ -6,7 +6,7 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom', // Simulate browser environment
     coverage: {
-      provider: 'c8',
+      provider: 'v8',
       reporter: ['text', 'html', 'lcov'],
       include: ['src/**/*.js'],
       exclude: ['src/main.js', 'node_modules/**', 'tools/**'],
