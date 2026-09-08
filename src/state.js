@@ -40,6 +40,7 @@ export function makeState() {
     deltaCC: 0,         // critical clearing angle (rad)
     deltaMax: Math.PI,  // unstable angle boundary (rad)
     stabilityMargin: 0, // A1/A2 area margin (pu·rad)
+    cct: 0,             // critical clearing time (s)
 
     // --- RLR mode ---
     rlrEnabled: false,

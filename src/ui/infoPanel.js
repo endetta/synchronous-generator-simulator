@@ -101,6 +101,22 @@ function updateInfoPanel(state) {
         </span>
       </div>
 
+      <!-- Critical Clearing Time -->
+      <div style="display: flex; justify-content: space-between;">
+        <span style="color: #586069;">CCT:</span>
+        <span style="font-family: 'Consolas', monospace; color: ${state.cct < 0.5 ? '#D73A49' : '#0366D6'};">
+          ${state.cct.toFixed(3)} s
+        </span>
+      </div>
+
+      <!-- Critical Clearing Angle -->
+      <div style="display: flex; justify-content: space-between;">
+        <span style="color: #586069;">δCC:</span>
+        <span style="font-family: 'Consolas', monospace; color: #24292E;">
+          ${(state.deltaCC * 180 / Math.PI).toFixed(1)}°
+        </span>
+      </div>
+
       <!-- Current Scenario -->
       <div style="display: flex; justify-content: space-between;">
         <span style="color: #586069;">Skenario:</span>

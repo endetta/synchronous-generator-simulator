@@ -274,7 +274,19 @@ function createDynamicElements() {
   statusText.setAttribute('font-weight', '600');
   dynamicGroup.appendChild(statusText);
 
-  return { dynamicGroup, pmLine, pmLabel, ccLine, ccLabel, a1Area, a2Area, opGlow, opPoint, statusText };
+  // CCT text (dynamic - shown when deltaCC is valid)
+  const cctText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  cctText.setAttribute('id', 'cct-text');
+  cctText.setAttribute('x', VIEWBOX_W - PADDING.right - 5);
+  cctText.setAttribute('y', VIEWBOX_H - PADDING.bottom - 5);
+  cctText.setAttribute('font-size', '9');
+  cctText.setAttribute('text-anchor', 'end');
+  cctText.setAttribute('fill', '#0366D6');
+  cctText.setAttribute('font-weight', '600');
+  cctText.style.display = 'none';
+  dynamicGroup.appendChild(cctText);
+
+  return { dynamicGroup, pmLine, pmLabel, ccLine, ccLabel, a1Area, a2Area, opGlow, opPoint, statusText, cctText };
 }
 
 // Initialize the SVG with static and dynamic layers
@@ -406,6 +418,14 @@ export function renderPDelta(svg, state, params) {
     const statusText = running ? '● RUNNING' : '○ STOPPED';
     dynamicElements.statusText.setAttribute('fill', statusColor);
     dynamicElements.statusText.textContent = statusText;
+
+    // Update CCT text if available
+    if (state.cct !== undefined && state.cct > 0 && state.cct < Infinity) {
+      dynamicElements.cctText.textContent = `CCT = ${state.cct.toFixed(3)} s`;
+      dynamicElements.cctText.style.display = 'block';
+    } else {
+      dynamicElements.cctText.style.display = 'none';
+    }
   }
 
   return svg.innerHTML;

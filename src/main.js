@@ -55,6 +55,15 @@ function initializeApp() {
   state.deltaCC = result.deltaCC;
   state.deltaMax = result.deltaMax;
 
+  // Compute initial CCT (Critical Clearing Time)
+  state.cct = computeCCT(
+    state.delta,
+    state.deltaCC,
+    state.Pm,
+    CONSTANTS.H,
+    CONSTANTS.F0
+  );
+
   // Add initial data points to history for timeSeries
   // Need at least 2 points for line rendering
   for (let i = 0; i < 3; i++) {
