@@ -7,112 +7,192 @@
   <link rel="stylesheet" href="src/styles.css">
 </head>
 <body>
+  <!-- Header Fixed -->
   <header id="main-header">
     <h1>Simulator Generator Sinkron</h1>
     <p>Sistem Simulasi Swing Equation dengan EAC & RLR</p>
   </header>
 
+  <!-- Main Content: Left 40% / Right 60% -->
   <main id="main-content">
-    <!-- Phasor Diagram Panel -->
-    <section id="phasor-panel" class="panel">
-      <h2>Diagram Phasor</h2>
-      <div id="phasor-container">
-        <svg id="phasor-svg" viewBox="-150 -150 300 300"></svg>
-      </div>
-    </section>
-
-    <!-- P-δ Curve Panel -->
-    <section id="pdelta-panel" class="panel">
-      <h2>Kurva P-δ (Power-Angle)</h2>
-      <div id="pdelta-container">
-        <svg id="pdelta-svg" viewBox="0 0 360 200"></svg>
-      </div>
-    </section>
-
-    <!-- Time Series Panel -->
-    <section id="timeseries-panel" class="panel">
-      <h2>Respon Waktu (Δδ, ω, P)</h2>
-      <div id="timeseries-container">
-        <canvas id="timeseries-canvas"></canvas>
-      </div>
-    </section>
-
-    <!-- RLR Chart Panel (hidden by default) -->
-    <section id="rlr-panel" class="panel" style="display: none;">
-      <h2>Profil Beban 24 Jam (RLR)</h2>
-      <div id="rlr-container">
-        <canvas id="rlr-canvas"></canvas>
-      </div>
-    </section>
-
-    <!-- Controls Panel -->
-    <section id="controls-panel" class="panel">
-      <h2>Kontrol Simulasi</h2>
-
-      <div class="control-group">
-        <label>
-          <span>Daya Mekanik (Pm)</span>
-          <input type="range" id="pm-slider" min="0" max="2.0" step="0.01" value="1.0">
-          <span id="pm-value" class="value-display">1.0 pu</span>
-        </label>
-      </div>
-
-      <div class="control-group">
-        <label>
-          <span>Droop (R)</span>
-          <input type="range" id="droop-slider" min="0.02" max="0.10" step="0.01" value="0.05">
-          <span id="droop-value" class="value-display">5%</span>
-        </label>
-      </div>
-
-      <div class="control-group">
-        <label>
-          <span>Gangguan (Fault)</span>
-          <select id="fault-select">
-            <option value="none">Tidak Ada</option>
-            <option value="3ph">3-Phasa</option>
-            <option value="lg">Line-to-Ground</option>
-          </select>
-        </label>
-      </div>
-
-      <div class="control-group">
-        <label>
-          <span>Sudut Awal (δ₀)</span>
-          <input type="range" id="delta-slider" min="0" max="180" step="1" value="30">
-          <span id="delta-value" class="value-display">30°</span>
-        </label>
-      </div>
-
-      <div class="button-group">
-        <button id="btn-start">Mulai</button>
-        <button id="btn-stop">Hentikan</button>
-        <button id="btn-reset">Reset</button>
-      </div>
-    </section>
-
-    <!-- Status Panel -->
-    <section id="status-panel" class="panel">
-      <h2>Status Simulasi</h2>
-      <div class="status-grid">
-        <div class="status-item">
-          <span>Sudut Relatif (δ)</span>
-          <span id="status-delta" class="status-value">0°</span>
+    <!-- LEFT PANEL: Phasor + Controls + Status -->
+    <aside id="left-panel">
+      <!-- Phasor Diagram (Most Prominent) -->
+      <section id="phasor-panel" class="panel">
+        <h2>Diagram Phasor</h2>
+        <div id="phasor-container">
+          <svg id="phasor-svg" viewBox="-150 -150 300 300"></svg>
         </div>
-        <div class="status-item">
-          <span>Kecepatan (ω)</span>
-          <span id="status-omega" class="status-value">1.0 pu</span>
+        <!-- Inline Status Values -->
+        <div id="phasor-status">
+          <div class="status-inline"><span>δ:</span><span id="status-delta-inline">30°</span></div>
+          <div class="status-inline"><span>ω:</span><span id="status-omega-inline">1.0 pu</span></div>
+          <div class="status-inline"><span>Pe:</span><span id="status-pe-inline">0.5 pu</span></div>
         </div>
-        <div class="status-item">
-          <span>Daya Listrik (Pe)</span>
-          <span id="status-pe" class="status-value">0.0 pu</span>
+      </section>
+
+      <!-- Controls Panel (Accordion) -->
+      <section id="controls-panel" class="panel">
+        <h2>Kontrol Simulasi</h2>
+
+        <!-- Mechanical Power Section (Expanded by Default) -->
+        <div class="accordion-section" data-expanded="true">
+          <button class="accordion-header">
+            <span>Daya Mekanik (Pm)</span>
+            <span class="accordion-icon">▼</span>
+          </button>
+          <div class="accordion-content">
+            <div class="control-group">
+              <label>
+                <span>Pm</span>
+                <input type="range" id="pm-slider" min="0" max="2.0" step="0.01" value="1.0">
+                <span id="pm-value" class="value-display">1.0 pu</span>
+              </label>
+            </div>
+            <div class="control-group">
+              <label>
+                <span>Skenario</span>
+                <select id="scenario-select">
+                  <option value="startup">Startup</option>
+                  <option value="steady">Steady State</option>
+                  <option value="fault">Fault Response</option>
+                  <option value="swing">Swing Test</option>
+                </select>
+              </label>
+            </div>
+          </div>
         </div>
-        <div class="status-item">
-          <span>Status Stabilitas</span>
-          <span id="status-stability" class="status-value">Stabil</span>
+
+        <!-- Governor Section -->
+        <div class="accordion-section">
+          <button class="accordion-header">
+            <span>Governor</span>
+            <span class="accordion-icon">▶</span>
+          </button>
+          <div class="accordion-content">
+            <div class="control-group">
+              <label>
+                <span>Droop (R)</span>
+                <input type="range" id="droop-slider" min="0.02" max="0.10" step="0.01" value="0.05">
+                <span id="droop-value" class="value-display">5%</span>
+              </label>
+            </div>
+          </div>
         </div>
-      </div>
-    </section>
+
+        <!-- Fault Conditions Section -->
+        <div class="accordion-section">
+          <button class="accordion-header">
+            <span>Kondisi Gangguan</span>
+            <span class="accordion-icon">▶</span>
+          </button>
+          <div class="accordion-content">
+            <div class="control-group">
+              <label>
+                <span>Jenis Gangguan</span>
+                <select id="fault-select">
+                  <option value="none">Tidak Ada</option>
+                  <option value="3ph">3-Phasa</option>
+                  <option value="lg">Line-to-Ground</option>
+                </select>
+              </label>
+            </div>
+            <div class="control-group">
+              <label>
+                <span>Durasi (siklus)</span>
+                <input type="range" id="fault-duration-slider" min="1" max="20" step="1" value="5">
+                <span id="fault-duration-value" class="value-display">5 siklus</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Initial Conditions Section -->
+        <div class="accordion-section">
+          <button class="accordion-header">
+            <span>Kondisi Awal</span>
+            <span class="accordion-icon">▶</span>
+          </button>
+          <div class="accordion-content">
+            <div class="control-group">
+              <label>
+                <span>Sudut Awal (δ₀)</span>
+                <input type="range" id="delta-slider" min="0" max="180" step="1" value="30">
+                <span id="delta-value" class="value-display">30°</span>
+              </label>
+            </div>
+            <div class="control-group">
+              <label>
+                <span>Kecepatan Awal (ω₀)</span>
+                <input type="range" id="omega-slider" min="0.95" max="1.05" step="0.001" value="1.0">
+                <span id="omega-value" class="value-display">1.0 pu</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Simulation Control Section -->
+        <div class="accordion-section">
+          <button class="accordion-header">
+            <span>Kontrol Simulasi</span>
+            <span class="accordion-icon">▶</span>
+          </button>
+          <div class="accordion-content">
+            <div class="button-group">
+              <button id="btn-start">Mulai</button>
+              <button id="btn-stop">Hentikan</button>
+              <button id="btn-reset">Reset</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </aside>
+
+    <!-- RIGHT PANEL: P-δ + Time Series + Timeline -->
+    <div id="right-panel">
+      <!-- P-δ Curve -->
+      <section id="pdelta-panel" class="panel">
+        <h2>Kurva P-δ (Equal Area Criterion)</h2>
+        <div id="pdelta-container">
+          <svg id="pdelta-svg" viewBox="0 0 360 200"></svg>
+        </div>
+      </section>
+
+      <!-- Time Series -->
+      <section id="timeseries-panel" class="panel">
+        <h2>Respon Waktu</h2>
+        <!-- Signal Selector (Radio Buttons) -->
+        <div id="signal-selector">
+          <label class="signal-radio">
+            <input type="radio" name="signal" value="delta" checked>
+            <span>δ (sudut)</span>
+          </label>
+          <label class="signal-radio">
+            <input type="radio" name="signal" value="omega">
+            <span>ω (kecepatan)</span>
+          </label>
+          <label class="signal-radio">
+            <input type="radio" name="signal" value="Pe">
+            <span>Pe (daya listrik)</span>
+          </label>
+          <label class="signal-radio">
+            <input type="radio" name="signal" value="Pm">
+            <span>Pm (daya mekanik)</span>
+          </label>
+        </div>
+        <div id="timeseries-container">
+          <canvas id="timeseries-canvas"></canvas>
+        </div>
+      </section>
+
+      <!-- Timeline Log -->
+      <section id="timeline-panel" class="panel">
+        <h2>Timeline Event</h2>
+        <div id="timeline-log">
+          <div class="timeline-entry">Simulasi siap. Tekan "Mulai" untuk memulai.</div>
+        </div>
+      </section>
+    </div>
   </main>
 
   <!-- Tooltip (hidden by default) -->
