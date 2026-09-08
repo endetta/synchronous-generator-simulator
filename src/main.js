@@ -13,6 +13,7 @@ import { renderPDelta } from './renderers/pdelta.js';
 import { renderTimeSeries } from './renderers/timeSeries.js';
 import { renderRLRChart } from './renderers/rlrChart.js';
 import { renderFieldAnimation } from './renderers/fieldAnimation.js';
+import { renderGovernorGauge, renderGovernorTracking } from './renderers/governorGauge.js';
 import { initControls, updateStatusDisplay } from './ui/controls.js';
 import { initPanels } from './ui/panels.js';
 import { initTooltip } from './ui/tooltip.js';
@@ -213,6 +214,26 @@ function renderAll() {
   const fieldSvg = document.getElementById('field-svg');
   if (fieldSvg) {
     renderFieldAnimation(fieldSvg, state, { showFluxLines: true, showTorque: true });
+  }
+
+  // Render governor gauge
+  const govGaugeSvg = document.getElementById('governor-gauge-svg');
+  if (govGaugeSvg) {
+    renderGovernorGauge(govGaugeSvg, {
+      valvePosition: governorState.valvePosition,
+      Pm: state.Pm,
+      Pref: state.Pref
+    }, { R: state.droop, Pmax: CONSTANTS.Pmax });
+  }
+
+  // Render governor tracking plot
+  const govTrackingCanvas = document.getElementById('governor-tracking-canvas');
+  if (govTrackingCanvas) {
+    renderGovernorTracking(govTrackingCanvas, {
+      time: history.simTime,
+      Pref: history.Pm.map((_, i) => state.Pref), // Use current Pref
+      Pm: history.Pm,
+    }, { windowSize: 10 });
   }
 
   // Render P-δ curve

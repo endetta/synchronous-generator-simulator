@@ -647,3 +647,42 @@ body {
     height: 250px;
   }
 }
+
+/* ──────────────────────────────────────────────────────────
+   Governor Visualization Panel
+   ────────────────────────────────────────────────────────── */
+
+#governor-panel {
+  margin-top: var(--space-4);
+}
+
+#governor-visualization {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+#governor-gauge-container {
+  display: flex;
+  justify-content: center;
+  background: var(--bg-secondary);
+  border-radius: 6px;
+  padding: var(--space-3);
+}
+
+#governor-gauge-svg {
+  width: 180px;
+  height: 130px;
+}
+
+#governor-tracking-container {
+  background: var(--bg-secondary);
+  border-radius: 6px;
+  padding: var(--space-3);
+}
+
+#governor-tracking-canvas {
+  width: 100%;
+  height: 120px;
+  display: block;
+}
