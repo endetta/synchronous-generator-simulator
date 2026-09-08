@@ -381,15 +381,27 @@ export function renderTimeSeries(canvas, data) {
 
   if (windowData.length < 2) return;
 
+  // PERFORMANCE: Downsample data to max 200 points for smooth rendering
+  // Avoid drawing 1000+ points every frame when canvas is only ~500px wide
+  const maxPoints = 200;
+  const step = Math.max(1, Math.floor(windowData.length / maxPoints));
+
   // Draw filled area under curve
   ctx.beginPath();
   ctx.moveTo(padding.left, padding.top + plotHeight);
-  windowData.forEach((p, i) => {
+  for (let i = 0; i < windowData.length; i += step) {
+    const p = windowData[i];
     const x = padding.left + ((p.t - windowMin) / tRange) * plotWidth;
     const y = padding.top + plotHeight - ((p.v - vMin) / vRange) * plotHeight;
-    if (i === 0) ctx.lineTo(x, y);
-    else ctx.lineTo(x, y);
-  });
+    ctx.lineTo(x, y);
+  }
+  // Always include last point
+  if (windowData.length > 0) {
+    const lastP = windowData[windowData.length - 1];
+    const lastX = padding.left + ((lastP.t - windowMin) / tRange) * plotWidth;
+    const lastY = padding.top + plotHeight - ((lastP.v - vMin) / vRange) * plotHeight;
+    ctx.lineTo(lastX, lastY);
+  }
   ctx.lineTo(padding.left + plotWidth, padding.top + plotHeight);
   ctx.closePath();
   ctx.fillStyle = signalConfig.color + '20'; // 12.5% opacity
@@ -401,12 +413,22 @@ export function renderTimeSeries(canvas, data) {
   ctx.lineWidth = 2.5;
   ctx.lineJoin = 'round';
   ctx.lineCap = 'round';
-  windowData.forEach((p, i) => {
+
+  // Draw with downsampling
+  for (let i = 0; i < windowData.length; i += step) {
+    const p = windowData[i];
     const x = padding.left + ((p.t - windowMin) / tRange) * plotWidth;
     const y = padding.top + plotHeight - ((p.v - vMin) / vRange) * plotHeight;
     if (i === 0) ctx.moveTo(x, y);
     else ctx.lineTo(x, y);
-  });
+  }
+  // Always include last point
+  if (windowData.length > 0) {
+    const lastP = windowData[windowData.length - 1];
+    const lastX = padding.left + ((lastP.t - windowMin) / tRange) * plotWidth;
+    const lastY = padding.top + plotHeight - ((lastP.v - vMin) / vRange) * plotHeight;
+    ctx.lineTo(lastX, lastY);
+  }
   ctx.stroke();
 
   // Draw reference line (steady state or middle value)

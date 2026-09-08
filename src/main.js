@@ -161,11 +161,10 @@ function simulate(dt) {
   // Check out-of-step
   checkOOS(state, state.deltaCC);
 
-  // Update status display
+  // Update status display (lightweight - only text updates)
   updateStatusDisplay(state);
 
-  // Trigger render
-  renderAll();
+  // NOTE: renderAll() called once per frame in mainLoop, not per physics step
 }
 
 // ──────────────────────────────────────────────────────────
@@ -226,6 +225,10 @@ function mainLoop(timestamp) {
   for (let i = 0; i < numSteps; i++) {
     simulate(CONSTANTS.DT);
   }
+
+  // PERFORMANCE: Render once per frame (after all physics steps)
+  // This ensures we don't render 600+ times/sec when sim runs fast
+  renderAll();
 
   requestAnimationFrame(mainLoop);
 }
