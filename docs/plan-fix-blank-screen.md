@@ -23,7 +23,13 @@
   - ✅ Fix main.js: Compute Pe dari delta saat inisialisasi
   - ✅ Semua tests pass (physics: 21, renderers: 12, integration: 11)
   
-- [x] **Phase 4: Verification** - Selesai
+- [x] **Phase 4: Final Fix - Canvas Rendering** - Selesai (commit `084c3e2`)
+  - ✅ Fix time series: butuh minimal 2 data points untuk menggambar garis
+  - ✅ Tambah 3 initial data points saat inisialisasi
+  - ✅ Canvas akan render garis horizontal dari awal
+  - ✅ Semua tests pass (physics: 21, renderers: 12, integration: 11)
+  
+- [x] **Phase 5: Verification** - Selesai
   - ✅ Semua test suites pass
   - ✅ Perlu user testing di browser untuk konfirmasi visual
 
@@ -31,11 +37,13 @@
 
 ### 1. src/main.js
 ```javascript
-// TAMBAH: Initial data point untuk timeSeries
-history.delta.push({ t: 0, v: state.delta });
-history.omega.push({ t: 0, v: state.omega });
-history.Pe.push({ t: 0, v: state.Pe });
-history.Pm.push({ t: 0, v: state.Pm });
+// FIX: Initial data points untuk timeSeries (butuh minimal 2 titik untuk garis)
+for (let i = 0; i < 3; i++) {
+  history.delta.push({ t: i * 0.01, v: state.delta });
+  history.omega.push({ t: i * 0.01, v: state.omega });
+  history.Pe.push({ t: i * 0.01, v: state.Pe });
+  history.Pm.push({ t: i * 0.01, v: state.Pm });
+}
 
 // TAMBAH: Debug logging
 console.log('State:', state);
